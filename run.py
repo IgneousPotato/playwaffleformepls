@@ -5,6 +5,7 @@ from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.firefox.options import Options
 
+from tile import Tile
 from board import Board
 from player import Player
 from scrapper import Scrapper
@@ -47,28 +48,14 @@ def main():
         except:
             logging.info("Damnit. Ads live. Yuck.")''' 
             
-        board = Board()
-
-        elements = {}
+        tiles = []
         for num in range(22, 43, 1):
-            element = browser.find_element(By.XPATH, f"/html/body/div[4]/div[2]/main[1]/div[2]/div[2]/div[{num}]")
-            
-            letter = element.get_attribute('innerHTML')
-            try:
-                colour = element.get_dom_attribute("class").split(" ")[3]
-            except:
-                colour = None
-            data_pos_x = int(element.get_dom_attribute("data-pos")[-8])
-            data_pos_y = int(element.get_dom_attribute("data-pos")[-2])
-
-            elements[num - 21] = [letter, colour, data_pos_x, data_pos_y]
-            logging.info(f'letter: {letter}, colour: {colour}, position: ({data_pos_x}, {data_pos_y}) added')
-            
-        board.add_elements(elements=elements)
-        board.view_board()
-        board.view_letter_status()
-
-        player = Player(browser)
+            element = browser.find_element(By.XPATH, f"/html/body/div[4]/div[2]/main[1]/div[2]/div[2]/div[{num}]")            
+            tile = Tile(element)
+            tiles.append(tile)
+        
+        board = Board(5)
+        # player = Player(browser)
         # player.move_bit(a, b)
 
     finally:
