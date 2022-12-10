@@ -19,9 +19,6 @@ class Scrapper:
         else:
             self.driver = None
 
-    def load_static_page(self) -> None:
-        self.page_content = requests.get(self.html, verify=False)
-
     def load_dynamic_page(self) -> None:
         # "Tried to use dynamic page loading without a webdriver."
         self.driver.get(self.html)

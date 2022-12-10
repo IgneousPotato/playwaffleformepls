@@ -3,6 +3,7 @@ import logging
 from time import sleep
 from selenium import webdriver
 from selenium.webdriver.common.by import By
+from selenium.webdriver import ActionChains
 from selenium.webdriver.firefox.options import Options
 
 from tile import Tile
@@ -13,8 +14,6 @@ from scrapper import Scrapper
 
 def main():
     try:
-        logging.basicConfig(level=logging.INFO, format='%(levelname)s:%(asctime)s - %(message)s')
-        
         browserOpts = Options()
         browserOpts.headless = True
         browser = webdriver.Firefox(options=browserOpts)
@@ -50,17 +49,32 @@ def main():
             
         tiles = []
         for num in range(22, 43, 1):
-            element = browser.find_element(By.XPATH, f"/html/body/div[4]/div[2]/main[1]/div[2]/div[2]/div[{num}]")            
+            xpath = f"/html/body/div[4]/div[2]/main[1]/div[2]/div[2]/div[{num}]"
+            element = browser.find_element(By.XPATH, xpath)           
             tile = Tile(element)
             tiles.append(tile)
+
+        board = Board(browser, 5)
+        board.add_tiles(tiles)
+
+        action_driver = ActionChains(browser)
+        player = Player(action_driver, board)
         
-        board = Board(5)
-        # player = Player(browser)
-        # player.move_bit(a, b)
+        print(board)
+        player.move_tile(19, 1)   
+        player.move_tile(11, 18)
+        player.move_tile(18, 5)
+        player.move_tile(8, 18)
+        player.move_tile(8, 19)
+        player.move_tile(7, 15)   
+        player.move_tile(13, 14) 
+        player.move_tile(2, 3) 
+        player.move_tile(3, 17)
+        player.move_tile(9, 12)
 
     finally:
         try:
-            browser.close()
+            # browser.close()
             pass
         except:
             pass
