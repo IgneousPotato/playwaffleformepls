@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 import logging
 
 from time import sleep
@@ -10,6 +11,7 @@ from tile import Tile
 from board import Board
 from player import Player
 from scrapper import Scrapper
+from brute_solve import BruteSolver
 
 
 def main():
@@ -56,6 +58,9 @@ def main():
 
         board = Board(browser, 5)
         board.add_tiles(tiles)
+
+        BS = BruteSolver(board)
+        print(BS.letters)
 
         action_driver = ActionChains(browser)
         player = Player(action_driver, board)

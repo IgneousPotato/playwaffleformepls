@@ -37,5 +37,5 @@ class Board:
         self.tiles[idx1] = self.tiles[idx2]
         self.tiles[idx2] = tile1_temp
 
-        self.tiles[idx1].update_colour()
-        self.tiles[idx2].update_colour()
+        self.tiles[idx1].update_col_pos()
+        self.tiles[idx2].update_col_pos()
