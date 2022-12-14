@@ -10,8 +10,8 @@ from selenium.webdriver.firefox.options import Options
 from tile import Tile
 from board import Board
 from player import Player
+from solver import Solver
 from scrapper import Scrapper
-from brute_solve import BruteSolver
 
 
 def main():
@@ -59,23 +59,22 @@ def main():
         board = Board(browser, 5)
         board.add_tiles(tiles)
 
-        BS = BruteSolver(board)
+        words = []
+        with open('five_letter_words.txt') as flw:
+            for line in flw:
+                words.extend(line.split())
+
+        BS = Solver(board, words)
         print(BS.letters)
 
         action_driver = ActionChains(browser)
         player = Player(action_driver, board)
         
         print(board)
-        player.move_tile(19, 1)   
-        player.move_tile(11, 18)
-        player.move_tile(18, 5)
-        player.move_tile(8, 18)
-        player.move_tile(8, 19)
-        player.move_tile(7, 15)   
-        player.move_tile(13, 14) 
-        player.move_tile(2, 3) 
-        player.move_tile(3, 17)
-        player.move_tile(9, 12)
+        # print(BS.board_letters)
+        # print(BS.solved_matrix)
+        # print(BS.english_words) 
+        BS.brute_force()
 
     finally:
         try:

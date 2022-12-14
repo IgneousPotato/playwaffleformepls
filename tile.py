@@ -24,7 +24,6 @@ class Tile:
     def update_col_pos(self) -> None:
         temp_pos = self.web_element.get_dom_attribute("data-pos")
         self.pos = (int(temp_pos[-2]), int(temp_pos[-8]))
-        print(self.pos)
         try:
             self.colour = list(set(self.web_element.get_dom_attribute("class").split(" ")) & set(['green', 'yellow']))[0]
         except:
