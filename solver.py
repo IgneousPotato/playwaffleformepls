@@ -77,11 +77,15 @@ class Solver:
                 pattern = re.compile(char, re.IGNORECASE)
                 horrible_dict[2*count+1] = [x for x in horrible_dict[2*count] if re.search(pattern, x)]
         
+        dict_list_main = list(horrible_dict.values())[::2]
         dict_list = list(horrible_dict.values())
-        possible_words = list(set.intersection(*map(set, dict_list)))
+        possible_words = list(set.intersection(*map(set, dict_list_main)))
+        possible_words_ext = list(set.intersection(*map(set, dict_list)))
         
         logging.info(f"Green Letters: {g_w}")
         logging.info(f"Yellow Letters: {y_w}")
         logging.info(f"Possible Words:")
         print(possible_words)
+        logging.info(f"Possible Words Extended:")
+        print(possible_words_ext)
         print()
