@@ -56,13 +56,12 @@ def main():
         
         while num < 43:
             try:
-                print(xpath_base)
                 xpath = f"{xpath_base}[{num}]"
                 element = browser.find_element(By.XPATH, xpath)
                 
                 tile = Web_Tile(element)
-                print(tile)
-                print(repr(tile))
+                # print(tile)
+                # print(repr(tile))
                 tiles.append(tile)   
 
                 num += 1    
@@ -79,15 +78,12 @@ def main():
                 words.extend(line.split())
 
         BS = Solver(board, words)
-        print(BS.letters)
+        # print(BS.letters)
 
         action_driver = ActionChains(browser)
         player = Web_Player(action_driver, board)
         
         print(board)
-        # print(BS.board_letters)
-        # print(BS.solved_matrix)
-        # print(BS.english_words) 
         BS.brute_force()
 
     finally:
