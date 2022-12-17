@@ -7,11 +7,11 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver import ActionChains
 from selenium.webdriver.firefox.options import Options
 
-from tile import Tile
 from board import Board
-from player import Player
 from solver import Solver
 from scrapper import Scrapper
+from tile import Tile, Web_Tile
+from player import Player, Web_Player
 
 
 def main():
@@ -49,12 +49,26 @@ def main():
         except:
             logging.info("Damnit. Ads live. Yuck.")''' 
             
+        # test_tile = Tile()
         tiles = []
-        for num in range(22, 43, 1):
-            xpath = f"/html/body/div[4]/div[2]/main[1]/div[2]/div[2]/div[{num}]"
-            element = browser.find_element(By.XPATH, xpath)           
-            tile = Tile(element)
-            tiles.append(tile)
+        num = 22
+        xpath_base = "/html/body/div[3]/div[2]/main[1]/div[2]/div[2]/div"
+        
+        while num < 43:
+            try:
+                print(xpath_base)
+                xpath = f"{xpath_base}[{num}]"
+                element = browser.find_element(By.XPATH, xpath)
+                
+                tile = Web_Tile(element)
+                print(tile)
+                print(repr(tile))
+                tiles.append(tile)   
+
+                num += 1    
+            except:
+                xpath_base = "/html/body/div[4]/div[2]/main[1]/div[2]/div[2]/div" # idk why but it sometimes changes the first div in the xpath?
+                num = 22
 
         board = Board(browser, 5)
         board.add_tiles(tiles)
@@ -68,7 +82,7 @@ def main():
         print(BS.letters)
 
         action_driver = ActionChains(browser)
-        player = Player(action_driver, board)
+        player = Web_Player(action_driver, board)
         
         print(board)
         # print(BS.board_letters)
@@ -78,7 +92,7 @@ def main():
 
     finally:
         try:
-            # browser.close()
+            browser.close()
             pass
         except:
             pass

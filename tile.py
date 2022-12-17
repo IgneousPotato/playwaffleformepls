@@ -4,13 +4,12 @@ from selenium.webdriver.remote.webelement import WebElement
 class Tile:
     letter: str
     colour: str
-    web_element: WebElement
     pos: list
     
-    def __init__(self, web_element) -> None:
-        self.web_element = web_element
-        self.letter = self.web_element.get_attribute('innerHTML')
-        self.update_col_pos()
+    def __init__(self, letter, colour, pos) -> None:
+        self.letter = letter
+        self.colour = colour
+        self.pos = pos
 
     def __str__(self) -> str:
         return colored(f'{self.letter}', f'{self.colour}')
@@ -19,7 +18,22 @@ class Tile:
         return format(str(self), __format_spec)
 
     def __repr__(self) -> str:
-        return f'Tile({self.letter}, {self.colour}, {self.web_element})'
+        return f'Tile({self.letter}, {self.colour})'
+
+    def update_col_pos(self, colour, pos) -> None:
+        self.pos = pos
+        self.colour = colour
+
+class Web_Tile(Tile):
+    web_element: WebElement
+
+    def __init__(self, web_element) -> None:
+        self.web_element = web_element
+        self.letter = self.web_element.get_attribute('innerHTML')
+        self.update_col_pos()
+    
+    def __repr__(self) -> str:
+        return f'Web_Tile({self.letter}, {self.colour}, {self.web_element})'
 
     def update_col_pos(self) -> None:
         temp_pos = self.web_element.get_dom_attribute("data-pos")
