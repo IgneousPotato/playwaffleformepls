@@ -13,7 +13,7 @@ class Solver:
     
     def __init__(self, board, words) -> None:
         self.size = board.size
-        self.letters = list(set(tile.letter for tile in board.tiles))
+        self.letters = list(tile.letter for tile in board.tiles)
         self.board = np.ndarray((self.size, self.size), dtype=list)
         self.mask = np.ndarray((self.size, self.size), dtype=list)
         
@@ -53,12 +53,12 @@ class Solver:
         empty_idx = []
         score = 0
 
-        for count, current_char in enumerate(mask):
-            if current_char == 1:
+        for count, char in enumerate(mask):
+            if char == 1:
                 g_letters += word[count]
                 y_letters += '.'            
                 score += 5
-            elif current_char == 0:
+            elif char == 0:
                 g_letters += '.'
                 y_letters += word[count]
                 y_idx.append(count)
