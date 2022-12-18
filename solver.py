@@ -1,4 +1,5 @@
 import re
+import string
 import logging
 
 import numpy as np
@@ -26,13 +27,21 @@ class Solver:
 
         self.english_words = words
 
-    def brute_force(self):
+
+    def form_CSP(self):
         temp_board = self.board
         temp_mask = self.mask
+        wrong_letters_mask = ''
         
-        letters = self.letters
-
-        poss_word_dict = {}
+        full_alpha = list(string.ascii_uppercase)
+        wrong_letters = set(full_alpha).difference(set(self.letters))
+        for letter in wrong_letters:
+            if wrong_letters_mask == '':
+                wrong_letters_mask += f'{letter}'
+            else:
+                wrong_letters_mask += f'|{letter}'
+                
+        domains = {}
 
         for i in range(2):
             for j in range(int((self.size + 1) / 2)):
@@ -43,29 +52,28 @@ class Solver:
                     word = temp_board[:, j*2]
                     mask = temp_mask[:, j*2]
 
-                poss_word_dict[i*3 + j] = self.get_domain(word, mask)
-            
+                domains[i*3 + j] = self.get_word_domain(word, mask, wrong_letters_mask)
+        
 
-    def get_domain(self, word, mask):
+    def get_word_domain(self, word, mask, wrong_letters_mask):
+        '''
+        Could add a lot more constraints on creating domains and further reduce its size but I cba.
+        It works, not the best solution but that's not my goal right now anyway :)
+        '''
+
         g_letters = ''
         y_letters = ''
         y_idx = []
         empty_idx = []
-        score = 0
 
         for count, char in enumerate(mask):
             if char == 1:
                 g_letters += word[count]
-                y_letters += '.'            
-                score += 5
+                y_letters += '.'  
             elif char == 0:
                 g_letters += '.'
                 y_letters += word[count]
                 y_idx.append(count)
-                if count % 2 == 0:
-                    score += 1
-                else:
-                    score += 3
             else:
                 g_letters += '.'
                 y_letters += '.'
@@ -98,14 +106,14 @@ class Solver:
                 count += 2
         else:
             word_domain = g_mask_domain
-
-        print()
-        logging.info(f'Green Letters: {list(g_letters)}')
-        logging.info(f'Yellow Letters: {list(y_letters)}')
-        logging.info(f'Score: {score}\n')
-        logging.info(f'Word domain:')
-        print(word_domain)
-        print()
-
-        return word_domain, score
         
+        pattern = re.compile(wrong_letters_mask, re.IGNORECASE)
+        word_domain = [x for x in word_domain if not re.search(pattern, x)]
+
+        return word_domain
+
+
+    def get_constraints(self):
+        # TODO FORM CONSTRAINTS BASED ON SIZEEEEEEE 
+        # Basically, the elements where row/column intersect have to be the same letter. wow so amazing. wow wow wew
+        pass
