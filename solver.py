@@ -52,10 +52,10 @@ class Solver:
                     word = temp_board[:, j*2]
                     mask = temp_mask[:, j*2]
 
-                domains[i*3 + j] = self.get_word_domain(word, mask, wrong_letters_mask)
+                domains[i*3 + j] = self.get_domain(word, mask, wrong_letters_mask)
         
 
-    def get_word_domain(self, word, mask, wrong_letters_mask):
+    def get_domain(self, word, mask, wrong_letters_mask):
         '''
         Could add a lot more constraints on creating domains and further reduce its size but I cba.
         It works, not the best solution but that's not my goal right now anyway :)
@@ -116,4 +116,35 @@ class Solver:
     def get_constraints(self):
         # TODO FORM CONSTRAINTS BASED ON SIZEEEEEEE 
         # Basically, the elements where row/column intersect have to be the same letter. wow so amazing. wow wow wew
-        pass
+        # fuck it hardcoded for size 5 rn
+        constraints = {
+            ('0', '3'): lambda word0, word3: word0[0] == word3[0],
+            ('3', '0'): lambda word3, word0: word3[0] == word0[0],
+            ('0', '4'): lambda word0, word4: word0[2] == word4[0],
+            ('4', '0'): lambda word4, word0: word4[0] == word0[2],
+            ('0', '5'): lambda word0, word5: word0[4] == word5[0],
+            ('5', '0'): lambda word5, word0: word5[0] == word0[4],
+            # make it a
+            ('1', '3'): lambda word1, word3: word1[0] == word3[2],
+            ('3', '1'): lambda word3, word1: word3[2] == word1[0],
+            ('1', '4'): lambda word1, word4: word1[2] == word4[2],
+            ('4', '1'): lambda word4, word1: word4[2] == word1[2],
+            ('1', '5'): lambda word1, word5: word1[4] == word5[2],
+            ('5', '1'): lambda word5, word1: word5[2] == word1[4],
+            # bit readable
+            ('2', '3'): lambda word2, word3: word2[0] == word3[4],
+            ('3', '2'): lambda word3, word2: word3[4] == word2[0],
+            ('2', '4'): lambda word2, word4: word2[2] == word4[4],
+            ('4', '2'): lambda word4, word2: word4[4] == word2[2],
+            ('2', '5'): lambda word2, word5: word2[4] == word5[4],
+            ('5', '2'): lambda word5, word2: word5[4] == word2[4],
+        }
+        return constraints
+
+
+    def get_arcs(self):
+        # Also hard coded for now cause fuck it. 
+        arcs = [('0', '3'), ('3', '0'), ('0', '4'), ('4', '0'), ('0', '5'), ('5', '0'), 
+                ('1', '3'), ('3', '1'), ('1', '4'), ('4', '1'), ('1', '5'), ('5', '1'),
+                ('2', '3'), ('3', '2'), ('2', '4'), ('4', '2'), ('2', '5'), ('5', '2')]
+        return arcs
