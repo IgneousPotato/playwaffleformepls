@@ -81,8 +81,9 @@ def main():
         player = Web_Player(action_driver, board)
         
         print(board)
-        BS.form_CSP()
-
+        ans = BS.solve()
+        print(ans)
+        
     finally:
         try:
             browser.close()

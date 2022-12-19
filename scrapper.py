@@ -1,5 +1,3 @@
-import requests
-
 from time import sleep
 from bs4 import BeautifulSoup
 from selenium import webdriver
@@ -7,11 +5,6 @@ from selenium.webdriver.common.by import By
 
 
 class Scrapper:
-    html: str
-    soup: BeautifulSoup
-    page_content: requests.models.Response
-    driver: webdriver
-
     def __init__(self, url, driver: webdriver = None) -> None:
         self.html = url
         if driver != None:

@@ -2,10 +2,9 @@ from selenium import webdriver
 
 class Board:
     size: int
-    tile_count: int
     tiles: list
 
-    def __init__(self, size=5) -> None:
+    def __init__(self, size: int = 5) -> None:
         self.size = size
         self.tiles = []
         self.tile_count = int((size + 1) * (3*size - 1) * 0.25)
@@ -43,9 +42,10 @@ class Board:
 
 
 class Board(Board):
-    browser: webdriver
+    browser: object
+    # browser: webdriver
 
-    def __init__(self, browser, size=5) -> None:
+    def __init__(self, browser: object, size=5) -> None:
         super().__init__(size)
         self.browser = browser
 
