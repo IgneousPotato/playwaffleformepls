@@ -16,6 +16,7 @@ class Solver:
     def __init__(self, board: object, words) -> None:
         self.words_list = words
         self.size = board.size
+        self.rowcolcount = int((self.size + 1) / 2)
         self.board = np.ndarray((self.size, self.size), dtype=list)
         self.mask = np.ndarray((self.size, self.size), dtype=list)
         self.letters = []
@@ -30,8 +31,9 @@ class Solver:
                 self.mask[tile.pos] = 0
 
         self._domains = self.get_domains()
-        self._constraints = self.get_constraints()
-        self._arcs = self.get_arcs()
+        # self._constraints = self.get_constraints()
+        # self._arcs = self.get_arcs()
+        self._arcs, self._constraints = self.get_arcs_constraints()
 
     def get_domains(self) -> dict:
         wrong_letters_mask = ''
@@ -46,15 +48,15 @@ class Solver:
                 
         domains = {}
         for i in range(2):
-            for j in range(int((self.size + 1) / 2)):
+            for j in range(self.rowcolcount):
                 if i == 0:
                     word = self.board[j*2, :]
                     mask = self.mask[j*2, :]
                 else:
                     word = self.board[:, j*2]
                     mask = self.mask[:, j*2]
-                domains[i*3 + j] = self.get_word_domain(word, mask, wrong_letters_mask)
-
+                domains[i*self.rowcolcount + j] = self.get_word_domain(word, mask, wrong_letters_mask)
+        
         return domains
 
     def get_word_domain(self, word, mask, wrong_letters_mask) -> list:
@@ -114,42 +116,23 @@ class Solver:
 
         return word_domain
 
-    def get_constraints(self) -> dict:
-        # TODO FORM CONSTRAINTS BASED ON SIZEEEEEEE 
-        # Basically, the elements where row/column intersect have to be the same letter. wow so amazing. wow wow wew
-        # fuck it hardcoded for size 5 rn
-        # probs make a lambda function generator for it
-        constraints = {
-            (0, 3): lambda word0, word3: word0[0] == word3[0],
-            (3, 0): lambda word3, word0: word3[0] == word0[0],
-            (0, 4): lambda word0, word4: word0[2] == word4[0],
-            (4, 0): lambda word4, word0: word4[0] == word0[2],
-            (0, 5): lambda word0, word5: word0[4] == word5[0],
-            (5, 0): lambda word5, word0: word5[0] == word0[4],
-            #make it a
-            (1, 3): lambda word1, word3: word1[0] == word3[2],
-            (3, 1): lambda word3, word1: word3[2] == word1[0],
-            (1, 4): lambda word1, word4: word1[2] == word4[2],
-            (4, 1): lambda word4, word1: word4[2] == word1[2],
-            (1, 5): lambda word1, word5: word1[4] == word5[2],
-            (5, 1): lambda word5, word1: word5[2] == word1[4],
-            #bit readable
-            (2, 3): lambda word2, word3: word2[0] == word3[4],
-            (3, 2): lambda word3, word2: word3[4] == word2[0],
-            (2, 4): lambda word2, word4: word2[2] == word4[4],
-            (4, 2): lambda word4, word2: word4[4] == word2[2],
-            (2, 5): lambda word2, word5: word2[4] == word5[4],
-            (5, 2): lambda word5, word2: word5[4] == word2[4]
-        }
-        return constraints
+    def get_arcs_constraints(self) -> list:
+        arcs = []
+        constraints = {}
 
-    def get_arcs(self) -> list:
-        # Also hard coded for now cause fuck it. 
-        arcs = [(0, 3), (3, 0), (0, 4), (4, 0), (0, 5), (5, 0), 
-                (1, 3), (3, 1), (1, 4), (4, 1), (1, 5), (5, 1),
-                (2, 3), (3, 2), (2, 4), (4, 2), (2, 5), (5, 2)]
-        return arcs
+        for i in range(self.rowcolcount):
+            for j in range(self.rowcolcount):
+                arcs.append((i, j + self.rowcolcount))
+                arcs.append((j + self.rowcolcount, i))
+
+                constraints[(i, j + self.rowcolcount)] = self.lambda_constraint(j*2, i*2)
+                constraints[(j + self.rowcolcount, i)] = self.lambda_constraint(i*2, j*2)
+        
+        return arcs, constraints
     
+    def lambda_constraint(self, i, j):
+        return lambda wordi, wordj: wordi[i] == wordj[j] 
+
     def run_AC3(self, domains: dict = None) -> dict:
         if domains == None:
             domains = self._domains
@@ -243,3 +226,6 @@ class Solver:
         self.run_AC3(self._domains)
         self._domains = dict(sorted(self._domains.items(), key=lambda item: len(item[1])))
         return self.backtrack_search(self._domains)
+
+    def find_moves(self) -> list:
+        pass
