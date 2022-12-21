@@ -21,8 +21,9 @@ class Solver:
         self.letters = []
 
         for tile in board.tiles:
-            self.letters.append(tile.letter)
             self.board[tile.pos] = tile.letter
+            self.letters.append(tile.letter)
+
             if tile.colour == "green":
                 self.mask[tile.pos] = 1
             elif tile.colour == "yellow":
@@ -32,13 +33,11 @@ class Solver:
         self._constraints = self.get_constraints()
         self._arcs = self.get_arcs()
 
-    def solve(self) -> dict:
-        return self.run_AC3()
-
     def get_domains(self) -> dict:
         wrong_letters_mask = ''
         full_alpha = list(string.ascii_uppercase)
         wrong_letters = set(full_alpha).difference(set(self.letters))
+        
         for letter in wrong_letters:
             if wrong_letters_mask == '':
                 wrong_letters_mask += f'{letter}'
@@ -119,6 +118,7 @@ class Solver:
         # TODO FORM CONSTRAINTS BASED ON SIZEEEEEEE 
         # Basically, the elements where row/column intersect have to be the same letter. wow so amazing. wow wow wew
         # fuck it hardcoded for size 5 rn
+        # probs make a lambda function generator for it
         constraints = {
             (0, 3): lambda word0, word3: word0[0] == word3[0],
             (3, 0): lambda word3, word0: word3[0] == word0[0],
@@ -149,29 +149,31 @@ class Solver:
                 (1, 3), (3, 1), (1, 4), (4, 1), (1, 5), (5, 1),
                 (2, 3), (3, 2), (2, 4), (4, 2), (2, 5), (5, 2)]
         return arcs
+    
+    def run_AC3(self, domains: dict = None) -> dict:
+        if domains == None:
+            domains = self._domains
 
-    def run_AC3(self) -> dict:
         arc_list = queue.Queue() 
         [arc_list.put(arc) for arc in self._arcs]
 
         while not arc_list.empty():
             (xi, xj) = arc_list.get()
 
-            if len(self._domains[xi]) == 0:
-                logging.error(f'No domain found for word {xi}. No solution possible.')
+            if len(domains[xi]) == 0:
                 return None
 
-            if self._remove_inconsistent_values(xi, xj):
+            if self._remove_inconsistent_values(xi, xj, domains):
                 xi_neighbours = [neighbour for neighbour in self._arcs if neighbour[0] == xi]
 
                 [arc_list.put(neighbour) for neighbour in xi_neighbours]
         
-        return self._domains
+        return domains
         
-    def _remove_inconsistent_values(self, xi: object, xj: object) -> bool:
+    def _remove_inconsistent_values(self, xi: object, xj: object, domains:dict) -> bool:
         removed = False
-        xi_domain = self._domains[xi]
-        xj_domain = self._domains[xj]     
+        xi_domain = domains[xi]
+        xj_domain = domains[xj]     
         
         for x in xi_domain:
             satisfy = False
@@ -190,3 +192,56 @@ class Solver:
                 removed = True
 
         return removed
+
+    def backtrack_search(self, domains, vallist) -> dict:
+        print()
+        logging.info(f'Testing domain: {domains}')
+        logging.info(f'Current Stack: {vallist}')
+
+        if all(len(value) == 1 for value in domains.values()):
+            if self.check_letters(domains):
+                logging.info('FOUND VALID SOLUTION!!!!!!!!!!!!!!!!!')
+                return domains
+
+        for key, values, in domains.items():
+            if len(values) > 1:
+                break
+        else:
+            return None
+        
+        if len(vallist) == 0:
+            vallist = []
+
+        for value in values:
+            vallist.append(value)
+
+            new_domains = {k: v[:] for k, v in domains.items()}
+            new_domains[key] = [value]
+            
+            self.run_AC3(new_domains)
+
+            result = self.backtrack_search(new_domains, vallist)
+            if result is not None:
+                return result
+
+            vallist.remove(value)
+
+        return None
+
+    def check_letters(self, dictionary):
+        letters_string = ''
+
+        for key in dictionary:
+            if key <= (self.size - 1) / 2:
+                letters_string += dictionary[key][0].upper()
+            else:
+                letters_string += dictionary[key][0][1::2].upper()
+        
+        return sorted(list(letters_string)) == sorted(self.letters)
+        
+    def solve(self) -> dict:
+        self.run_AC3(self._domains)
+        self._domains = dict(sorted(self._domains.items(), key=lambda item: len(item[1])))
+        ans = self.backtrack_search(self._domains, [])
+        print()
+        logging.info(f'FINAL SOLUTION: {ans}')

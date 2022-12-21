@@ -81,8 +81,7 @@ def main():
         player = Web_Player(action_driver, board)
         
         print(board)
-        ans = BS.solve()
-        print(ans)
+        BS.solve()
         
     finally:
         try:
