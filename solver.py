@@ -193,39 +193,39 @@ class Solver:
 
         return removed
 
-    def backtrack_search(self, domains, vallist) -> dict:
-        print()
-        logging.info(f'Testing domain: {domains}')
-        logging.info(f'Current Stack: {vallist}')
+    def backtrack_search(self, domains: dict, print_: bool = False) -> dict:
+        if print_:
+            print()
+            logging.info(f'Testing domain: {domains}')
+            
+            stack = []
+            for values in domains.values():
+                if len(values) == 1:
+                    stack.append(values[0])
+                if len(values) > 1:
+                    break
+            logging.info(f'Current Stack 2: {" -> ".join(stack)}')
 
-        if all(len(value) == 1 for value in domains.values()):
-            if self.check_letters(domains):
-                logging.info('FOUND VALID SOLUTION!!!!!!!!!!!!!!!!!')
-                return domains
-
-        for key, values, in domains.items():
+        if all(len(value) == 1 for value in domains.values()) and self.check_letters(domains):
+            logging.info('FOUND VALID SOLUTION!!!!!!!!!!!!!!!!!')
+            return domains
+        
+        for key, values in domains.items():
             if len(values) > 1:
                 break
         else:
             return None
-        
-        if len(vallist) == 0:
-            vallist = []
 
         for value in values:
-            vallist.append(value)
-
             new_domains = {k: v[:] for k, v in domains.items()}
             new_domains[key] = [value]
-            
-            self.run_AC3(new_domains)
 
-            result = self.backtrack_search(new_domains, vallist)
+            if self.run_AC3(new_domains) == None:
+                continue
+
+            result = self.backtrack_search(new_domains, print_)
             if result is not None:
                 return result
-
-            vallist.remove(value)
-
         return None
 
     def check_letters(self, dictionary):
@@ -242,6 +242,6 @@ class Solver:
     def solve(self) -> dict:
         self.run_AC3(self._domains)
         self._domains = dict(sorted(self._domains.items(), key=lambda item: len(item[1])))
-        ans = self.backtrack_search(self._domains, [])
+        ans = self.backtrack_search(self._domains)
         print()
         logging.info(f'FINAL SOLUTION: {ans}')
