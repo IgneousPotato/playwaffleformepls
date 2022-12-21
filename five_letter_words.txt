@@ -1813,6 +1813,7 @@ extol
 extra
 exude
 exult
+eying
 eyras
 eyres
 eyrie

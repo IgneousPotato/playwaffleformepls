@@ -81,7 +81,8 @@ def main():
         player = Web_Player(action_driver, board)
         
         print(board)
-        BS.solve()
+        ans = BS.solve()
+        logging.info(f'FINAL SOLUTION: {ans}')
         
     finally:
         try:

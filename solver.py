@@ -197,7 +197,7 @@ class Solver:
         if print_:
             print()
             logging.info(f'Testing domain: {domains}')
-            
+
             stack = []
             for values in domains.values():
                 if len(values) == 1:
@@ -242,6 +242,4 @@ class Solver:
     def solve(self) -> dict:
         self.run_AC3(self._domains)
         self._domains = dict(sorted(self._domains.items(), key=lambda item: len(item[1])))
-        ans = self.backtrack_search(self._domains)
-        print()
-        logging.info(f'FINAL SOLUTION: {ans}')
+        return self.backtrack_search(self._domains)
