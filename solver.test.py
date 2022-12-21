@@ -9,10 +9,10 @@ class TestBoardSolver(unittest.TestCase):
         size = 5
         
         letters = ['F', 'B', 'O', 'U', 'E',
-                 'G', 'I', 'U',
-                 'L', 'S', 'O', 'O', 'M',
-                 'G', 'E', 'L',
-                 'O', 'E', 'M', 'N', 'A']
+                   'G', 'I', 'U',
+                   'L', 'S', 'O', 'O', 'M',
+                   'G', 'E', 'L',
+                   'O', 'E', 'M', 'N', 'A']
         
         colours = ['green', 'white', 'white', 'green', 'green',
                    'white', 'white', 'white',
@@ -48,10 +48,10 @@ class TestBoardSolver(unittest.TestCase):
         size = 5
         
         letters = ['Q', 'T', 'G', 'U', 'L',
-                 'Y', 'U', 'G',
-                 'D', 'U', 'I', 'O', 'E',
-                 'T', 'N', 'E',
-                 'N', 'E', 'I', 'L', 'Y']
+                   'Y', 'U', 'G',
+                   'D', 'U', 'I', 'O', 'E',
+                   'T', 'N', 'E',
+                   'N', 'E', 'I', 'L', 'Y']
         
         colours = ['green', 'white', 'white', 'yellow', 'green',
                    'white', 'white', 'yellow',
