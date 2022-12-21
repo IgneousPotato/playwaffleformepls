@@ -31,8 +31,6 @@ class Solver:
                 self.mask[tile.pos] = 0
 
         self._domains = self.get_domains()
-        # self._constraints = self.get_constraints()
-        # self._arcs = self.get_arcs()
         self._arcs, self._constraints = self.get_arcs_constraints()
 
     def get_domains(self) -> dict:
@@ -64,7 +62,6 @@ class Solver:
         Could add a lot more constraints on creating domains and further reduce its size but I cba.
         It works, not the best solution but that's not my goal right now anyway :)
         '''
-
         g_letters = ''
         y_letters = ''
         y_idx = []
@@ -83,14 +80,14 @@ class Solver:
                 y_letters += '.'
                 empty_idx.append(count)
 
-        if g_letters != '.....':
+        if g_letters != '.'*self.size:
             pattern = re.compile(g_letters, re.IGNORECASE)
             g_mask_domain = [x for x in self.words_list if re.match(pattern, x)]
         else:
             g_mask_domain = self.words_list
-            
+        
         word_domain = []
-        if y_letters[1::2] != '..': 
+        if y_letters[1::2] != '.'*(self.rowcolcount - 1): 
             count = 1
 
             while count < self.size: 
@@ -130,13 +127,10 @@ class Solver:
         
         return arcs, constraints
     
-    def lambda_constraint(self, i, j):
+    def lambda_constraint(self, i: int, j: int):
         return lambda wordi, wordj: wordi[i] == wordj[j] 
 
-    def run_AC3(self, domains: dict = None) -> dict:
-        if domains == None:
-            domains = self._domains
-
+    def run_AC3(self, domains: dict) -> dict:
         arc_list = queue.Queue() 
         [arc_list.put(arc) for arc in self._arcs]
 

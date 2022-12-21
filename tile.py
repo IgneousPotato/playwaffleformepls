@@ -18,7 +18,7 @@ class Tile:
         return format(str(self), __format_spec)
 
     def __repr__(self) -> str:
-        return f'Tile({self.letter}, {self.colour})'
+        return f'Tile({self.letter}, {self.colour}, {self.pos})'
 
     def update_col_pos(self, colour, pos) -> None:
         self.pos = pos
