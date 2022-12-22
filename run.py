@@ -6,12 +6,11 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver import ActionChains
 from selenium.webdriver.firefox.options import Options
 
+from tile import Web_Tile
 from board import Web_Board
+from player import Web_Player
 from solver import Solver
 from scrapper import Scrapper
-from tile import Tile, Web_Tile
-from player import Player, Web_Player
-
 
 def main():
     try:
