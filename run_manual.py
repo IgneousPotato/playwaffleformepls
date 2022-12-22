@@ -8,19 +8,19 @@ from tile import Tile
 from board import Board
 from solver import Solver
 
-def extract_file(file_name: str) -> Union(int, list, list):
+def extract_file(file_name: str):
     if file_name.endswith('.txt'):
         with open(file_name) as f:
-            size = int(f.readline())
-            strings = list(f.readline())
-            colours_str = f.readline()
+            size = int(f.readline().strip('\n'))
+            letters = f.readline().strip('\n')
+            colours = f.readline()
     else:
         logging.error('File type is incorrect. It must be a .txt file.')
 
-    return size, strings, parse_colours(colours_str)
+    return size, parse_letters(letters), parse_colours(colours)
 
 def parse_letters(ltr_str: str) -> list:
-    return list(ltr_str)
+    return list(ltr_str.upper())
 
 def parse_colours(col_str: str) -> list:
     colours = []
@@ -66,10 +66,10 @@ def load_tiles(letters: list, colours: list, pos: list) -> list:
     
     return tiles
 
-def run_file_from_code(file_name: str) -> dict:
+def open_file_ext_code(file_name: str):
     # if I want to open a file from another script
-    sz, lt, cl = extract_file(file_name)
-    return run(sz, lt, cl)
+    # returns size, letters, colours
+    return extract_file(file_name)
 
 def run(size: int, letters: list, colours: list) -> dict:
     try:
@@ -78,6 +78,8 @@ def run(size: int, letters: list, colours: list) -> dict:
         
         board = Board(size)
         board.add_tiles(load_tiles(letters, colours, pos))
+        print(board)
+
         BS = Solver(board, words)
         sol = BS.solve()
         return sol
@@ -95,17 +97,22 @@ def main():
 """)
         try:
             sz, lt, cl = extract_file(argv[1])
+            print(f'Size: {sz}')
+            print(f'Letters (len: {len(lt)}): {lt}')
+            print(f'Colours (len: {len(cl)}): {cl}')
         except FileNotFoundError:
             logging.error('File not found')
         except IndexError:
             logging.info('No file given. Enter manual input.')
-            logging.info('Keyboard interrupt (Ctrl + C) to end.')
+            logging.info('Keyboard interrupt (Ctrl + C) to exit.')
             logging.info('P.S. Right click to paste string in terminal :)\n')
 
             sz = int(input('Enter size: '))
             logging.info(f"Letters string and colours string should be of length {int((sz + 1) * (3*sz - 1) * 0.25)}.")
             lt = parse_letters(input('Enter letters string: '))
+            print(f'            ⮡ length: {len(lt)}')
             cl = parse_colours(input('Enter colours string: '))
+            print(f'            ⮡ length: {len(cl)}')
         
         sol = run(sz, lt, cl)
         print(sol)

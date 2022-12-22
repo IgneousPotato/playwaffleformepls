@@ -1,9 +1,8 @@
 import unittest
 
-from tile import Tile
 from board import Board
 from solver import Solver
-from run_manual import parse_letters, parse_colours, get_pos, get_words, load_tiles
+from run_manual import parse_letters, parse_colours, get_pos, get_words, load_tiles, run
 
 class TestBoardSolver(unittest.TestCase):
     def test_archive_1(self):
