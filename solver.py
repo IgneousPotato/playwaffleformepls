@@ -218,8 +218,9 @@ class Solver:
         
     def solve(self) -> dict:
         self.run_AC3(self._domains)
-        self._domains = dict(sorted(self._domains.items(), key=lambda item: len(item[1])))
-        return self.backtrack_search(self._domains)
+        self._domains = self.backtrack_search(self._domains)
+        dict(sorted(self._domains.items(), key=lambda item: len(item[1])))
+        return self._domains
 
     def find_moves(self) -> list:
         pass

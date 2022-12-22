@@ -1,38 +1,26 @@
+import numpy as np
+
 from selenium import webdriver
 
 class Board:
     size: int
     tiles: list
+    board: list
 
     def __init__(self, size: int) -> None:
         self.size = size
         self.tiles = []
+        self.board = np.ndarray((self.size, self.size), dtype=object)
         self.tile_count = int((size + 1) * (3*size - 1) * 0.25)
 
     def __str__(self) -> str:
-        # TODO THIS IS WRONG. DOESN'T WORK FOR 7x7
         string = ''
-        count = 0
-        for i in range(self.size):
-            if i % 2 == 0:
-
-                temp = self.tiles[count:count+self.size]
-                for i in temp:
-                    print(f'{i.pos} ', end='')
-
-                string += ' '.join(str(tile) for tile in self.tiles[count:count+self.size])
-                string += '\n'
-                count += 5
+        for row, tile in enumerate(self.board):
+            if row % 2 == 0:
+                string += ' '.join(str(t) for t in tile)
             else:
-                a = int((self.size+1)/2)
-
-                temp = self.tiles[count:count+a]
-                for i in temp:                    
-                    print(f'{i.pos} ', end='')
-
-                string += '   '.join(str(tile) for tile in self.tiles[count:count + a])
-                string += '\n'
-                count += a
+                string += '   '.join(str(t) for t in tile[::2])
+            string += '\n'
         return string
 
     def __repr__(self) -> str:
@@ -40,6 +28,8 @@ class Board:
     
     def add_tiles(self, tiles) -> None:
         self.tiles = tiles
+        for tile in self.tiles:
+            self.board[tile.pos] = tile
 
     def change_tiles(self, idx1, idx2) -> None:
         tile1_temp = self.tiles[idx1]

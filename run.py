@@ -1,8 +1,7 @@
 #!/usr/bin/env python
 import logging
 
-from time import sleep
-from selenium import webdriver
+from seleniumrequests import Firefox
 from selenium.webdriver.common.by import By
 from selenium.webdriver import ActionChains
 from selenium.webdriver.firefox.options import Options
@@ -20,11 +19,10 @@ def main():
 
         browserOpts = Options()
         browserOpts.headless = headless
-        browser = webdriver.Firefox(options=browserOpts)
+        browser = Firefox(options=browserOpts)
     
         driver = Scrapper(url='https://wafflegame.net/', driver=browser)
         driver.load_dynamic_page()
-        driver.extract_html()
         
         if not headless:
             browser.maximize_window()
@@ -49,7 +47,7 @@ def main():
                 logging.info("Ew, bye ads.")
             except:
                 pass
-                
+
         tiles = []
         num = 22
         xpath_base = "/html/body/div[3]/div[2]/main[1]/div[2]/div[2]/div"
