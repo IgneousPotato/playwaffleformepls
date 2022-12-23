@@ -2,7 +2,6 @@
 import logging
 
 from sys import argv
-from typing import Union
 
 from tile import Tile
 from board import Board
@@ -16,6 +15,7 @@ def extract_file(file_name: str):
             colours = f.readline()
     else:
         logging.error('File type is incorrect. It must be a .txt file.')
+        quit()
 
     return size, parse_letters(letters), parse_colours(colours)
 
@@ -34,17 +34,6 @@ def parse_colours(col_str: str) -> list:
     
     return colours
 
-def get_pos(size: int) -> list:
-    pos = []
-    for i in range(size):
-        for j in range(size):
-            if i % 2 != 0 and j % 2 != 0:
-                continue 
-            else:
-                pos.append((i, j))
-    
-    return pos
-
 def get_words(size: int) -> list:
     if size == 5:
         dict_file = 'five_letter_words.txt'
@@ -59,10 +48,11 @@ def get_words(size: int) -> list:
     
     return words
 
-def load_tiles(letters: list, colours: list, pos: list) -> list:
+def load_tiles(letters: list, colours: list) -> list:
+    # Only for Board object, not Web_Board object
     tiles = []
     for count, letter in enumerate(letters):
-        tiles.append(Tile(letter, colours[count], pos[count]))
+        tiles.append(Tile(letter, colours[count]))
     
     return tiles
 
@@ -72,36 +62,49 @@ def open_file_ext_code(file_name: str):
     return extract_file(file_name)
 
 def run(size: int, letters: list, colours: list) -> dict:
-    try:
-        pos = get_pos(size)
-        words = get_words(size)
-        
-        board = Board(size)
-        board.add_tiles(load_tiles(letters, colours, pos))
-        print(board)
+    # try:
+    words = get_words(size)
+    
+    board = Board(size)
+    board.add_tiles(load_tiles(letters, colours))
+    print(f'{board}')
 
-        BS = Solver(board, words)
-        sol = BS.solve()
-        return sol
-    except:
-        logging.error('Something went wrong. Were your inputs valid?')
+    BS = Solver(board, words)
+    sol = BS.solve()
+    
+    if sol == None:
+        logging.info('No valid solution found for given board')
+        quit()
+
+    # board.add_tiles(load_tiles(BS.solved_letters, ['green']*len(colours)))
+    # print(f'{board}')
+    
+    BS.find_ideal_moves()
+
+    return sol
+    # except:
+    #     print()
+    #     logging.error('Something went wrong. Were your inputs valid?')
+    #     quit()
 
 def main():
-    try: 
-        print("""                                                                                                 
+    try:     
+        try:
+            print("""                                                                                                 
  _____ _____ _____    _ _ _ _____ _____ _____ __    _____    _____ _____ __    _____ _____ _____ 
-|     |   __|  |  |  | | | |  _  |   __|   __|  |  |   __|  |   __|     |  |  |  |  |   __| __  |
-| | | |   __|     |  | | | |     |   __|   __|  |__|   __|  |__   |  |  |  |__|  |  |   __|    -|
-|_|_|_|_____|__|__|  |_____|__|__|__|  |__|  |_____|_____|  |_____|_____|_____|\___/|_____|__|__|
+|  _  |     |     |  | | | |  _  |   __|   __|  |  |   __|  |   __|     |  |  |  |  |   __| __  |
+|   __|  |  |  |  |  | | | |     |   __|   __|  |__|   __|  |__   |  |  |  |__|  |  |   __|    -|
+|__|  |_____|_____|  |_____|__|__|__|  |__|  |_____|_____|  |_____|_____|_____|\___/|_____|__|__|
                                                                                                  
 """)
-        try:
             sz, lt, cl = extract_file(argv[1])
-            print(f'Size: {sz}')
-            print(f'Letters (len: {len(lt)}): {lt}')
-            print(f'Colours (len: {len(cl)}): {cl}')
+            logging.info(f'Opened file {argv[1]}.')
+            print(f'\nSize    : {sz}')
+            print(f'Letters : {lt} // lenght: {len(lt)}')
+            print(f'Colours : {cl} // length: {len(cl)}')
         except FileNotFoundError:
             logging.error('File not found')
+            quit()
         except IndexError:
             logging.info('No file given. Enter manual input.')
             logging.info('Keyboard interrupt (Ctrl + C) to exit.')
@@ -115,7 +118,7 @@ def main():
             print(f'            ⮡ length: {len(cl)}')
         
         sol = run(sz, lt, cl)
-        print(sol)
+        logging.info(f'SOLUTION: {sol}')        
     except KeyboardInterrupt:
         print()
         logging.info('Keyboard Interrupt')

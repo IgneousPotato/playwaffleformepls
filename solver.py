@@ -1,4 +1,5 @@
 import re
+import copy
 import queue
 import string
 import logging
@@ -6,7 +7,7 @@ import logging
 import numpy as np
 
 class Solver:
-    board: np.ndarray
+    board_matrix: np.ndarray
     words_list: set
     
     _arcs: list
@@ -15,53 +16,59 @@ class Solver:
     
     def __init__(self, board: object, words) -> None:
         self.words_list = words
+
         self.size = board.size
         self.rowcolcount = int((self.size + 1) / 2)
-        self.board = np.ndarray((self.size, self.size), dtype=list)
-        self.mask = np.ndarray((self.size, self.size), dtype=list)
-        self.letters = []
 
-        for tile in board.tiles:
-            self.board[tile.pos] = tile.letter
-            self.letters.append(tile.letter)
+        self.board = board
+        self.board_matrix = np.ndarray((self.size, self.size), dtype=list)
+        self.mask = np.ndarray((self.size, self.size), dtype=list)
+
+        self.initial_letters = []
+        self.solved_letters = []
+
+        for i, tile in enumerate(board.tiles):
+            self.board_matrix[board.tile_pos[i]] = tile.letter
+            self.initial_letters.append(tile.letter)
 
             if tile.colour == "green":
-                self.mask[tile.pos] = 1
+                self.mask[board.tile_pos[i]] = 1
             elif tile.colour == "yellow":
-                self.mask[tile.pos] = 0
+                self.mask[board.tile_pos[i]] = 0
 
-        self._domains = self.get_domains()
+        self.idx_unsolved_ltr_map = {}
+        self.word_idx_map = {}
+        
+        self._domains, self.mask_map = self.get_domains_mask_map()
         self._arcs, self._constraints = self.get_arcs_constraints()
 
-    def get_domains(self) -> dict:
+    def get_domains_mask_map(self) -> dict:
         wrong_letters_mask = ''
         full_alpha = list(string.ascii_uppercase)
-        wrong_letters = set(full_alpha).difference(set(self.letters))
+        wrong_letters = set(full_alpha).difference(set(self.initial_letters))
         
         for letter in wrong_letters:
             if wrong_letters_mask == '':
                 wrong_letters_mask += f'{letter}'
             else:
                 wrong_letters_mask += f'|{letter}'
-                
+        
+        mask_map = {}
         domains = {}
         for i in range(2):
             for j in range(self.rowcolcount):
                 if i == 0:
-                    word = self.board[j*2, :]
+                    word = self.board_matrix[j*2, :]
                     mask = self.mask[j*2, :]
                 else:
-                    word = self.board[:, j*2]
+                    word = self.board_matrix[:, j*2]
                     mask = self.mask[:, j*2]
+                mask_map[i*self.rowcolcount + j] = mask
                 domains[i*self.rowcolcount + j] = self.get_word_domain(word, mask, wrong_letters_mask)
-        
-        return domains
+
+        return domains, mask_map
 
     def get_word_domain(self, word, mask, wrong_letters_mask) -> list:
-        '''
-        Could add a lot more constraints on creating domains and further reduce its size but I cba.
-        It works, not the best solution but that's not my goal right now anyway :)
-        '''
         g_letters = ''
         y_letters = ''
         y_idx = []
@@ -182,7 +189,7 @@ class Solver:
                 if len(values) > 1:
                     break
             logging.info(f'Current Stack 2: {" -> ".join(stack)}')
-
+        
         if all(len(value) == 1 for value in domains.values()) and self.check_letters(domains):
             logging.info('FOUND VALID SOLUTION!!!!!!!!!!!!!!!!!')
             return domains
@@ -213,14 +220,40 @@ class Solver:
                 letters_string += dictionary[key][0].upper()
             else:
                 letters_string += dictionary[key][0][1::2].upper()
-        
-        return sorted(list(letters_string)) == sorted(self.letters)
+                
+        return sorted(list(letters_string)) == sorted(self.initial_letters)
+
+    def get_solved_letters(self):
+        if all(len(value) != 1 for value in self._domains.values()):
+            logging.error('Domain is not yet solved.')
+            return None
+
+        solved_board = []
+
+        size = int((len(self._domains) + 1) / 2 )
+        for i in range(size):
+            solved_board.extend(list(self._domains[i][0]))
+            
+            if i == size - 1:
+                break
+
+            for j in range(size):
+                solved_board.append(self._domains[j+size][0][i*2+1])
+
+        return list(map(lambda x: x.upper(), solved_board))
         
     def solve(self) -> dict:
         self.run_AC3(self._domains)
         self._domains = self.backtrack_search(self._domains)
-        dict(sorted(self._domains.items(), key=lambda item: len(item[1])))
-        return self._domains
 
-    def find_moves(self) -> list:
-        pass
+        if self._domains != None:
+            dict(sorted(self._domains.items(), key=lambda item: len(item[1])))
+
+        return self._domains
+    
+    def find_ideal_moves(self) -> list:
+        self.solved_letters = self.get_solved_letters()
+        self.idx_unsolved_ltr_map, self.word_idx_map = self.get_idx_word_rels()
+        
+        initial_score = self.eval_state(self.initial_letters)
+        solved_score = 5 * len(self.solved_letters)

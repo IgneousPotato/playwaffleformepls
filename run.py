@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import logging
 
+from time import sleep
 from seleniumrequests import Firefox
 from selenium.webdriver.common.by import By
 from selenium.webdriver import ActionChains
@@ -14,7 +15,8 @@ from scrapper import Scrapper
 
 def main():
     try:
-        headless = True
+        # headless = True
+        headless = False
 
         browserOpts = Options()
         browserOpts.headless = headless
@@ -26,6 +28,7 @@ def main():
         if not headless:
             browser.maximize_window()
             try:
+                sleep(5)
                 driver.click_elem(type=By.CLASS_NAME, tag="css-b2i6wm")
                 logging.info("Opened privacy options")
                 
@@ -40,47 +43,46 @@ def main():
                 driver.delete_elem(tag="help modal modal--show")
                 logging.info("Closed help information")
 
-            try:
+            '''try:
                 driver.delete_elem(tag="vm-skin vm-skin-left")
                 driver.delete_elem(tag="vm-skin vm-skin-right")
                 logging.info("Ew, bye ads.")
             except:
-                pass
+                pass'''
 
         tiles = []
         num = 22
-        xpath_base = "/html/body/div[3]/div[2]/main[1]/div[2]/div[2]/div"
-        
+        xpath = "/html/body/div[3]/div[2]/main[1]/div[2]/div[2]/div"
         while num < 43:
             try:
-                xpath = f"{xpath_base}[{num}]"
-                element = browser.find_element(By.XPATH, xpath)
+                element = browser.find_element(By.XPATH, f"{xpath}[{num}]")
                 
                 tile = Web_Tile(element)
                 tiles.append(tile)   
 
                 num += 1    
             except:
-                xpath_base = "/html/body/div[4]/div[2]/main[1]/div[2]/div[2]/div" # idk why but it sometimes changes the first div in the xpath?
+                xpath = "/html/body/div[4]/div[2]/main[1]/div[2]/div[2]/div" # idk why but it sometimes changes the first div in the xpath?
                 num = 22
 
         board = Web_Board(browser, 5)
         board.add_tiles(tiles)
+        print(board)
 
-        words = []
-        # words from https://www.bestwordlist.com/
+        words = []      # words from https://www.bestwordlist.com/
         with open('five_letter_words.txt') as flw:
             for line in flw:
                 words.extend(line.split())
 
         BS = Solver(board, words)
-
-        action_driver = ActionChains(browser)
-        player = Web_Player(action_driver, board)
-        
-        print(board)
         ans = BS.solve()
         logging.info(f'FINAL SOLUTION: {ans}')
+        
+        action_driver = ActionChains(browser)
+        player = Web_Player(action_driver, board)
+
+        instructions = BS.find_ideal_moves()
+        # player.run_instructions(instructions, automatic = True)
         
     finally:
         try:
@@ -92,4 +94,11 @@ def main():
 
 if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO, format='%(levelname)s:%(asctime)s - %(message)s')
+    print("""                                                                                                 
+ _____ _____ _____    _ _ _ _____ _____ _____ __    _____    _____ _____ __    _____ _____ _____ 
+|     |   __|  |  |  | | | |  _  |   __|   __|  |  |   __|  |   __|     |  |  |  |  |   __| __  |
+| | | |   __|     |  | | | |     |   __|   __|  |__|   __|  |__   |  |  |  |__|  |  |   __|    -|
+|_|_|_|_____|__|__|  |_____|__|__|__|  |__|  |_____|_____|  |_____|_____|_____|\___/|_____|__|__|
+                                                                                                 
+""")
     main()

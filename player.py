@@ -13,11 +13,19 @@ class Player:
     
     def move_tile(self, idx1, idx2) -> None:
         logging.info(f"Moving {idx1} ({self.board.tiles[idx1]}) to {idx2} ({self.board.tiles[idx2]})")
-        sleep(0.1)
         self.board.change_tiles(idx1, idx2)
-        
-    def play_instructions(self, dict, instructions) -> None:
-        pass
+            
+    def run_instructions(self, instructions: list, automatic: bool = True) -> None:
+        for instruction in instructions:
+            print(instruction[0], instruction[1])
+            self.move_tile(instruction[0], instruction[1])
+            print(self.board)
+
+            if automatic == True:
+                sleep(0.1)
+            else:
+                input()
+
 
 class Web_Player(Player):
     actions: ActionChains
