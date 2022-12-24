@@ -7,7 +7,7 @@ class Tile:
     letter: str
     colour: str
     
-    def __init__(self, letter, colour) -> None:
+    def __init__(self, letter: str, colour: str) -> None:
         self.letter = letter
         self.colour = colour
 
@@ -27,7 +27,7 @@ class Tile:
 class Web_Tile(Tile):
     web_element: WebElement
 
-    def __init__(self, web_element) -> None:
+    def __init__(self, web_element: WebElement) -> None:
         self.web_element = web_element
         self.letter = self.web_element.get_attribute('innerHTML')
         self.update_colour()

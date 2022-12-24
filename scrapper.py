@@ -5,7 +5,7 @@ from selenium.webdriver.common.by import By
 
 
 class Scrapper:
-    def __init__(self, url, driver: webdriver = None) -> None:
+    def __init__(self, url: str, driver: webdriver = None) -> None:
         self.html = url
         if driver != None:
             self.driver = driver
@@ -21,7 +21,7 @@ class Scrapper:
     def print_html(self) -> None:
         print(self.soup.prettify())
 
-    def click_elem(self, type, tag, mul = False) -> None:
+    def click_elem(self, type: By, tag: str, mul = False) -> None:
         if mul:
             a = self.driver.find_elements(type, tag)
             for i in a:
@@ -32,7 +32,7 @@ class Scrapper:
         else:
             self.driver.find_element(By.CLASS_NAME, tag).click()
         
-    def delete_elem(self, tag) -> None:
+    def delete_elem(self, tag: str) -> None:
         self.driver.execute_script(f"""
             var l = document.getElementsByClassName("{tag}")[0];
             l.parentNode.removeChild(l);

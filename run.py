@@ -13,7 +13,7 @@ from player import Web_Player
 from solver import Solver
 from scrapper import Scrapper
 
-def main():
+def main() -> None:
     try:
         # headless = True
         headless = False
@@ -81,11 +81,13 @@ def main():
         action_driver = ActionChains(browser)
         player = Web_Player(action_driver, board)
 
-        instructions = BS.find_ideal_moves()
-        # player.run_instructions(instructions, automatic = True)
+        instructions = BS.find_best_moves()
+        player.run_instructions(instructions, automatic = True)
         
     finally:
         try:
+            logging.info('Press ENTER to close.')
+            input()
             browser.close()
             pass
         except:

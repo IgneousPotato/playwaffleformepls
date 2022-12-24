@@ -17,7 +17,6 @@ class Player:
             
     def run_instructions(self, instructions: list, automatic: bool = True) -> None:
         for instruction in instructions:
-            print(instruction[0], instruction[1])
             self.move_tile(instruction[0], instruction[1])
             print(self.board)
 

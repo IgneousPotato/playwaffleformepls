@@ -37,12 +37,12 @@ class Board:
                     pos.append((i, j))
         return pos
     
-    def add_tiles(self, tiles) -> None:
+    def add_tiles(self, tiles: list) -> None:
         self.tiles = tiles
         for i, tile in enumerate(self.tiles):
             self.board[self.tile_pos[i]] = tile
 
-    def change_tiles(self, idx1, idx2) -> None:
+    def change_tiles(self, idx1: int, idx2: int) -> None:
         tile1_temp = self.tiles[idx1]
         
         self.tiles[idx1] = self.tiles[idx2]

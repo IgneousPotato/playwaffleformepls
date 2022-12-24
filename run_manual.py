@@ -7,7 +7,7 @@ from tile import Tile
 from board import Board
 from solver import Solver
 
-def extract_file(file_name: str):
+def extract_file(file_name: str) -> int | list | list:
     if file_name.endswith('.txt'):
         with open(file_name) as f:
             size = int(f.readline().strip('\n'))
@@ -61,31 +61,27 @@ def open_file_ext_code(file_name: str):
     # returns size, letters, colours
     return extract_file(file_name)
 
-def run(size: int, letters: list, colours: list) -> dict:
-    # try:
-    words = get_words(size)
-    
-    board = Board(size)
-    board.add_tiles(load_tiles(letters, colours))
-    print(f'{board}')
+def run(size: int, letters: list, colours: list) -> dict | list:
+    try:
+        words = get_words(size)
 
-    BS = Solver(board, words)
-    sol = BS.solve()
-    
-    if sol == None:
-        logging.info('No valid solution found for given board')
+        board = Board(size)
+        board.add_tiles(load_tiles(letters, colours))
+        print(f'{board}')
+
+        BS = Solver(board, words)
+        sol = BS.solve()
+
+        if sol == None:
+            logging.info('No valid solution found for given board')
+            quit()
+
+        best_moves = BS.find_best_moves()
+        return sol, best_moves
+    except:
+        print()
+        logging.error('Something went wrong. Were your inputs valid?')
         quit()
-
-    # board.add_tiles(load_tiles(BS.solved_letters, ['green']*len(colours)))
-    # print(f'{board}')
-    
-    BS.find_ideal_moves()
-
-    return sol
-    # except:
-    #     print()
-    #     logging.error('Something went wrong. Were your inputs valid?')
-    #     quit()
 
 def main():
     try:     
@@ -116,9 +112,17 @@ def main():
             print(f'            ⮡ length: {len(lt)}')
             cl = parse_colours(input('Enter colours string: '))
             print(f'            ⮡ length: {len(cl)}')
+
+            # sz = 7
+            # lt = parse_letters('MLLNPOELYGYIBPLIADEOEOAEETTLRNEARAIDSRRC')
+            # cl = parse_colours('wwgwgyywwwygwgggwgywyygwgggwgywyywwgwgwws')
         
-        sol = run(sz, lt, cl)
-        logging.info(f'SOLUTION: {sol}')        
+        sol, moves = run(sz, lt, cl)
+        
+        logging.info(f'SOLUTION: {sol}')  
+        logging.info('Best moves to reach it:')
+        for move in moves:
+            print(move)      
     except KeyboardInterrupt:
         print()
         logging.info('Keyboard Interrupt')

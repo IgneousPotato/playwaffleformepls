@@ -6,6 +6,8 @@ import logging
 
 import numpy as np
 
+from typing import Callable
+
 class Solver:
     board_matrix: np.ndarray
     words_list: set
@@ -14,7 +16,7 @@ class Solver:
     _domains: dict
     _constraints: dict
     
-    def __init__(self, board: object, words) -> None:
+    def __init__(self, board: object, words: list) -> None:
         self.words_list = words
 
         self.size = board.size
@@ -42,7 +44,7 @@ class Solver:
         self._domains, self.mask_map = self.get_domains_mask_map()
         self._arcs, self._constraints = self.get_arcs_constraints()
 
-    def get_domains_mask_map(self) -> dict:
+    def get_domains_mask_map(self) -> dict | dict:
         wrong_letters_mask = ''
         full_alpha = list(string.ascii_uppercase)
         wrong_letters = set(full_alpha).difference(set(self.initial_letters))
@@ -68,7 +70,7 @@ class Solver:
 
         return domains, mask_map
 
-    def get_word_domain(self, word, mask, wrong_letters_mask) -> list:
+    def get_word_domain(self, word: list, mask: list, wrong_letters_mask: str) -> list:
         g_letters = ''
         y_letters = ''
         y_idx = []
@@ -120,7 +122,7 @@ class Solver:
 
         return word_domain
 
-    def get_arcs_constraints(self) -> list:
+    def get_arcs_constraints(self) -> list | dict:
         arcs = []
         constraints = {}
 
@@ -134,7 +136,7 @@ class Solver:
         
         return arcs, constraints
     
-    def lambda_constraint(self, i: int, j: int):
+    def lambda_constraint(self, i: int, j: int) -> Callable:
         return lambda wordi, wordj: wordi[i] == wordj[j] 
 
     def run_AC3(self, domains: dict) -> dict:
@@ -212,18 +214,18 @@ class Solver:
                 return result
         return None
 
-    def check_letters(self, dictionary):
+    def check_letters(self, domain: dict) -> bool:
         letters_string = ''
 
-        for key in dictionary:
+        for key in domain:
             if key <= (self.size - 1) / 2:
-                letters_string += dictionary[key][0].upper()
+                letters_string += domain[key][0].upper()
             else:
-                letters_string += dictionary[key][0][1::2].upper()
+                letters_string += domain[key][0][1::2].upper()
                 
         return sorted(list(letters_string)) == sorted(self.initial_letters)
 
-    def get_solved_letters(self):
+    def get_solved_letters(self) -> list:
         if all(len(value) != 1 for value in self._domains.values()):
             logging.error('Domain is not yet solved.')
             return None
@@ -251,9 +253,124 @@ class Solver:
 
         return self._domains
     
-    def find_ideal_moves(self) -> list:
+    def find_best_moves(self) -> list:
         self.solved_letters = self.get_solved_letters()
         self.idx_unsolved_ltr_map, self.word_idx_map = self.get_idx_word_rels()
         
-        initial_score = self.eval_state(self.initial_letters)
-        solved_score = 5 * len(self.solved_letters)
+        best_moves = self.greedy_search(self.initial_letters, [], 0, self.idx_unsolved_ltr_map)
+        return best_moves
+         
+    def greedy_search(self, state: list, moves_list: list, depth: int, idx_unslvd_ltrs: dict):
+        if self.size == 5:
+            max_depth = 10
+        elif self.size == 7:
+            max_depth = 20
+
+        if depth == max_depth and state == self.solved_letters:
+            return moves_list
+        elif depth == max_depth and state != self.solved_letters: 
+            return None
+
+        cur_state_moves = self.possible_moves(state)
+        for move in cur_state_moves:
+            moves_list.append((move[0], move[1], state[move[0]], state[move[1]]))
+            new_idx_unslvd_ltrs = self.update_unsolved_ltrs(move, state, idx_unslvd_ltrs)
+            new_state = self.update_state(move, state)
+
+            result = self.greedy_search(new_state, moves_list, depth + 1, new_idx_unslvd_ltrs)
+
+            if result == None:
+                del moves_list[-1]
+            else: 
+                return moves_list
+
+        return None
+
+    def get_idx_word_rels(self):
+        idx_word_map = {}
+        count = 0
+
+        for i in range(self.rowcolcount):
+            for j in range(self.size):
+                word_keys = [i]
+                word_ltrs = [[x for y, x in enumerate(self._domains[i][0].upper()) if self.mask_map[i][y] != 1]]
+                idx_word_map[count] = [word_keys, word_ltrs]
+                
+                count += 1
+                        
+            for j in range(self.rowcolcount):                
+                word_keys = [j + self.rowcolcount]
+                word_ltrs = [x for y, x in enumerate(self._domains[j + self.rowcolcount][0].upper()) if self.mask_map[j + self.rowcolcount][y] != 1]
+                
+                if i != self.rowcolcount - 1:
+                    idx_word_map[count] = [word_keys, word_ltrs]
+
+                idx_word_map[count - (self.size - j)][0].extend(word_keys)
+                idx_word_map[count - (self.size - j)][1].append(word_ltrs)
+                
+                count += 1
+
+        word_idx_map = {}
+        for k, v in idx_word_map.items():
+            for i in v[0]:
+                if i not in word_idx_map:
+                    word_idx_map[i] = [k]
+                else:
+                    word_idx_map[i].append(k)
+        
+        return idx_word_map, word_idx_map
+
+    def update_unsolved_ltrs(self, move: tuple, state: list, idx_unsolved_ltr_map: dict) -> dict:
+        map_copy = copy.deepcopy(idx_unsolved_ltr_map)
+
+        if state[move[0]] == self.solved_letters[move[1]]: # if True, it becomes a greent tile
+            for idxs in self.word_idx_map.values():
+                if move[1] in idxs: # find words that contain the index its moving to
+                    for idx in idxs: # loop through each word
+                        ltrs = map_copy[idx][1] # check if tile moved is in the list of unsolved letters
+                        if state[move[0]] in ltrs:
+                            ltrs.remove(state[move[0]])
+
+        if state[move[1]] == self.solved_letters[move[0]]:
+            for idxs in self.word_idx_map.values():
+                if move[0] in idxs:
+                    for idx in idxs:
+                       ltrs = map_copy[idx][1]
+                       if state[move[1]] in ltrs:
+                            ltrs.remove(state[move[1]])
+        return map_copy
+    
+    def update_state(self, move: tuple, state: list) -> list:
+        copy_state = list(state)
+
+        lt1 = copy_state[move[0]]
+        lt2 = copy_state[move[1]]
+
+        copy_state[move[1]] = lt1
+        copy_state[move[0]] = lt2
+
+        return copy_state
+ 
+    def eval_letter(self, idx: int, letter: str) -> int:
+        if letter == self.solved_letters[idx]:
+            return 5
+        else:
+            idx_words = self.idx_unsolved_ltr_map[idx][1]
+            for word in idx_words:
+                if letter in word:
+                    return 2
+        return 0
+
+    def possible_moves(self, state: list) -> list:
+        poss_moves = []
+        for idx1, lt1 in enumerate(state):
+            if lt1 != self.solved_letters[idx1]:
+                for idx2, lt2 in enumerate(state):
+                    if lt1 != lt2 and lt2 != self.solved_letters[idx2]:
+                        cost = self.eval_letter(idx1, lt2) + self.eval_letter(idx2, lt1)
+                        move = (idx1, idx2, cost)
+                        if cost > 4:
+                            poss_moves.append(move)
+        
+        poss_moves.sort(key=lambda x: x[2], reverse=True)
+        return poss_moves
