@@ -112,13 +112,9 @@ def main():
             print(f'            ⮡ length: {len(lt)}')
             cl = parse_colours(input('Enter colours string: '))
             print(f'            ⮡ length: {len(cl)}')
-
-            # sz = 7
-            # lt = parse_letters('MLLNPOELYGYIBPLIADEOEOAEETTLRNEARAIDSRRC')
-            # cl = parse_colours('wwgwgyywwwygwgggwgywyygwgggwgywyywwgwgwws')
         
         sol, moves = run(sz, lt, cl)
-        
+
         logging.info(f'SOLUTION: {sol}')  
         logging.info('Best moves to reach it:')
         for move in moves:
