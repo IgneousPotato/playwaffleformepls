@@ -37,14 +37,13 @@ class Solver:
                 self.mask[board.tile_pos[i]] = 1
             elif tile.colour == "yellow":
                 self.mask[board.tile_pos[i]] = 0
-
-        self.idx_unsolved_ltr_map = {}
-        self.word_idx_map = {}
         
-        self._domains, self.mask_map = self.get_domains_mask_map()
+        self._domains= self.get_domains()
         self._arcs, self._constraints = self.get_arcs_constraints()
 
-    def get_domains_mask_map(self) -> dict | dict:
+        self.next_node_dict = {}
+
+    def get_domains(self) -> dict | dict:
         wrong_letters_mask = ''
         full_alpha = list(string.ascii_uppercase)
         wrong_letters = set(full_alpha).difference(set(self.initial_letters))
@@ -55,7 +54,6 @@ class Solver:
             else:
                 wrong_letters_mask += f'|{letter}'
         
-        mask_map = {}
         domains = {}
         for i in range(2):
             for j in range(self.rowcolcount):
@@ -65,10 +63,10 @@ class Solver:
                 else:
                     word = self.board_matrix[:, j*2]
                     mask = self.mask[:, j*2]
-                mask_map[i*self.rowcolcount + j] = mask
+
                 domains[i*self.rowcolcount + j] = self.get_word_domain(word, mask, wrong_letters_mask)
 
-        return domains, mask_map
+        return domains
 
     def get_word_domain(self, word: list, mask: list, wrong_letters_mask: str) -> list:
         g_letters = ''
@@ -246,131 +244,58 @@ class Solver:
         
     def solve(self) -> dict:
         self.run_AC3(self._domains)
-        self._domains = self.backtrack_search(self._domains)
-
         if self._domains != None:
-            dict(sorted(self._domains.items(), key=lambda item: len(item[1])))
+            self._domains = dict(sorted(self._domains.items(), key=lambda item: len(item[1])))
+        self._domains = self.backtrack_search(self._domains)
 
         return self._domains
     
     def find_best_moves(self) -> list:
         self.solved_letters = self.get_solved_letters()
-        self.idx_unsolved_ltr_map, self.word_idx_map = self.get_idx_word_rels()
+
+        for path, lt in enumerate(self.initial_letters):
+            self.form_next_node_dict(self.initial_letters, lt, path)
         
-        best_moves = self.greedy_search(self.initial_letters, [], 0, self.idx_unsolved_ltr_map)
-        return best_moves
-         
-    def greedy_search(self, state: list, moves_list: list, depth: int, idx_unslvd_ltrs: dict):
-        if self.size == 5:
-            max_depth = 10
-        elif self.size == 7:
-            max_depth = 20
+        self.next_node_dict = dict(sorted(self.next_node_dict.items(), key=lambda item: len(item[1])))
 
-        if depth == max_depth and state == self.solved_letters:
-            return moves_list
-        elif depth == max_depth and state != self.solved_letters: 
-            return None
+        for k in self.next_node_dict.keys():
+            print('start loop')
+            paths = []
+            for path in self.form_cyclic_link(k, k, [k]):
+                paths.append(path)
+            print('end loop')
+            min_len = len(min(paths, key=len))
+            shortest_paths = [x for x in paths if len(x) == min_len]
+            print('shortest path', shortest_paths)
+            print()
 
-        cur_state_moves = self.possible_moves(state)
-        for move in cur_state_moves:
-            moves_list.append((move[0], move[1], state[move[0]], state[move[1]]))
-            new_idx_unslvd_ltrs = self.update_unsolved_ltrs(move, state, idx_unslvd_ltrs)
-            new_state = self.update_state(move, state)
-
-            result = self.greedy_search(new_state, moves_list, depth + 1, new_idx_unslvd_ltrs)
-
-            if result == None:
-                del moves_list[-1]
-            else: 
-                return moves_list
-
-        return None
-
-    def get_idx_word_rels(self):
-        idx_word_map = {}
-        count = 0
-
-        for i in range(self.rowcolcount):
-            for j in range(self.size):
-                word_keys = [i]
-                word_ltrs = [[x for y, x in enumerate(self._domains[i][0].upper()) if self.mask_map[i][y] != 1]]
-                idx_word_map[count] = [word_keys, word_ltrs]
-                
-                count += 1
-                        
-            for j in range(self.rowcolcount):                
-                word_keys = [j + self.rowcolcount]
-                word_ltrs = [x for y, x in enumerate(self._domains[j + self.rowcolcount][0].upper()) if self.mask_map[j + self.rowcolcount][y] != 1]
-                
-                if i != self.rowcolcount - 1:
-                    idx_word_map[count] = [word_keys, word_ltrs]
-
-                idx_word_map[count - (self.size - j)][0].extend(word_keys)
-                idx_word_map[count - (self.size - j)][1].append(word_ltrs)
-                
-                count += 1
-
-        word_idx_map = {}
-        for k, v in idx_word_map.items():
-            for i in v[0]:
-                if i not in word_idx_map:
-                    word_idx_map[i] = [k]
-                else:
-                    word_idx_map[i].append(k)
+    def form_next_node_dict(self, state, letter, pos) -> list:
+        if letter == self.solved_letters[pos]:
+            return
         
-        return idx_word_map, word_idx_map
+        self.next_node_dict[pos] = []
 
-    def update_unsolved_ltrs(self, move: tuple, state: list, idx_unsolved_ltr_map: dict) -> dict:
-        map_copy = copy.deepcopy(idx_unsolved_ltr_map)
+        for idx, ltr in enumerate(state):
+            if idx == pos or ltr == self.solved_letters[idx]:
+                continue
+            if letter == self.solved_letters[idx]:
+                self.next_node_dict[pos].append(idx)
 
-        if state[move[0]] == self.solved_letters[move[1]]: # if True, it becomes a greent tile
-            for idxs in self.word_idx_map.values():
-                if move[1] in idxs: # find words that contain the index its moving to
-                    for idx in idxs: # loop through each word
-                        ltrs = map_copy[idx][1] # check if tile moved is in the list of unsolved letters
-                        if state[move[0]] in ltrs:
-                            ltrs.remove(state[move[0]])
-
-        if state[move[1]] == self.solved_letters[move[0]]:
-            for idxs in self.word_idx_map.values():
-                if move[0] in idxs:
-                    for idx in idxs:
-                       ltrs = map_copy[idx][1]
-                       if state[move[1]] in ltrs:
-                            ltrs.remove(state[move[1]])
-        return map_copy
-    
-    def update_state(self, move: tuple, state: list) -> list:
-        copy_state = list(state)
-
-        lt1 = copy_state[move[0]]
-        lt2 = copy_state[move[1]]
-
-        copy_state[move[1]] = lt1
-        copy_state[move[0]] = lt2
-
-        return copy_state
- 
-    def eval_letter(self, idx: int, letter: str) -> int:
-        if letter == self.solved_letters[idx]:
-            return 5
+    def form_cyclic_link(self, pos, goal_pos, cur_path):
+        if goal_pos in self.next_node_dict[pos]:
+            path = cur_path[:]
+            path.append(goal_pos)
+            
+            print('found', goal_pos, 'following', path)
+            yield path
         else:
-            idx_words = self.idx_unsolved_ltr_map[idx][1]
-            for word in idx_words:
-                if letter in word:
-                    return 2
-        return 0
+            for running_pos in self.next_node_dict[pos]:
+                if running_pos in cur_path:
+                    continue
 
-    def possible_moves(self, state: list) -> list:
-        poss_moves = []
-        for idx1, lt1 in enumerate(state):
-            if lt1 != self.solved_letters[idx1]:
-                for idx2, lt2 in enumerate(state):
-                    if lt1 != lt2 and lt2 != self.solved_letters[idx2]:
-                        cost = self.eval_letter(idx1, lt2) + self.eval_letter(idx2, lt1)
-                        move = (idx1, idx2, cost)
-                        if cost > 4:
-                            poss_moves.append(move)
-        
-        poss_moves.sort(key=lambda x: x[2], reverse=True)
-        return poss_moves
+                cur_path.append(running_pos)
+                for path in self.form_cyclic_link(running_pos, goal_pos, cur_path):
+                    yield path
+
+                cur_path.remove(running_pos)
+            
