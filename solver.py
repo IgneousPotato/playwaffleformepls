@@ -12,10 +12,6 @@ class Solver:
     board_matrix: np.ndarray
     words_list: set
     
-    _arcs: list
-    _domains: dict
-    _constraints: dict
-    
     def __init__(self, board: object, words: list) -> None:
         self.words_list = words
 
@@ -27,7 +23,6 @@ class Solver:
         self.mask = np.ndarray((self.size, self.size), dtype=list)
 
         self.initial_letters = []
-        self.solved_letters = []
 
         for i, tile in enumerate(board.tiles):
             self.board_matrix[board.tile_pos[i]] = tile.letter
@@ -42,6 +37,7 @@ class Solver:
         self._arcs, self._constraints = self.get_arcs_constraints()
 
         self.next_node_dict = {}
+        self.shortest_paths = []
 
     def get_domains(self) -> dict | dict:
         wrong_letters_mask = ''
@@ -223,79 +219,140 @@ class Solver:
                 
         return sorted(list(letters_string)) == sorted(self.initial_letters)
 
-    def get_solved_letters(self) -> list:
-        if all(len(value) != 1 for value in self._domains.values()):
+    def get_solved_letters(self, domains) -> list:
+        if all(len(value) != 1 for value in domains.values()):
             logging.error('Domain is not yet solved.')
             return None
 
         solved_board = []
 
-        size = int((len(self._domains) + 1) / 2 )
+        size = int((len(domains) + 1) / 2 )
         for i in range(size):
-            solved_board.extend(list(self._domains[i][0]))
+            solved_board.extend(list(domains[i][0]))
             
             if i == size - 1:
                 break
 
             for j in range(size):
-                solved_board.append(self._domains[j+size][0][i*2+1])
+                solved_board.append(domains[j + size][0][i *2 + 1])
 
         return list(map(lambda x: x.upper(), solved_board))
         
     def solve(self) -> dict:
         self.run_AC3(self._domains)
+        # print('after AC3')
+        # print(self._domains)
+        self._domains = self.backtrack_search(self._domains)
+        # print()
+        # print('after backtrack')
+        # print(self._domains)
         if self._domains != None:
             self._domains = dict(sorted(self._domains.items(), key=lambda item: len(item[1])))
-        self._domains = self.backtrack_search(self._domains)
-
+            
         return self._domains
-    
-    def find_best_moves(self) -> list:
-        self.solved_letters = self.get_solved_letters()
+
+    def find_best_moves(self, domains: dict) -> list:
+        solved_letters = self.get_solved_letters(domains)
+        
+        self.next_node_dict = {}
+        self.shortest_paths = []
 
         for path, lt in enumerate(self.initial_letters):
-            self.form_next_node_dict(self.initial_letters, lt, path)
-        
+            self.form_next_node_dict(self.initial_letters, lt, path, solved_letters)
         self.next_node_dict = dict(sorted(self.next_node_dict.items(), key=lambda item: len(item[1])))
+        self.find_cyclic_paths()
+        moves = self.form_moves_from_cycles(solved_letters)
+        
+        return moves
 
+    def find_cyclic_paths(self) -> list:
         for k in self.next_node_dict.keys():
-            print('start loop')
-            paths = []
-            for path in self.form_cyclic_link(k, k, [k]):
-                paths.append(path)
-            print('end loop')
-            min_len = len(min(paths, key=len))
-            shortest_paths = [x for x in paths if len(x) == min_len]
-            print('shortest path', shortest_paths)
-            print()
+            print(k)
+            if not any(k in path for path in self.shortest_paths):
 
-    def form_next_node_dict(self, state, letter, pos) -> list:
-        if letter == self.solved_letters[pos]:
+                paths = []
+                for path in self.find_elem_cyclic_path(k, k, [k]):
+                    paths.append(path)
+
+                min_len = len(min(paths, key=len))
+                shortest_paths = [x for x in paths if len(x) == min_len]
+
+                if len(shortest_paths) == 1:
+                    self.shortest_paths.append(list(set(shortest_paths[0])))
+
+    def form_next_node_dict(self, state: list, letter: str, pos: int, solved_letters: list) -> None:
+        if letter == solved_letters[pos]:
             return
         
         self.next_node_dict[pos] = []
 
         for idx, ltr in enumerate(state):
-            if idx == pos or ltr == self.solved_letters[idx]:
+            if idx == pos or ltr == solved_letters[idx]:
                 continue
-            if letter == self.solved_letters[idx]:
+            if letter == solved_letters[idx]:
                 self.next_node_dict[pos].append(idx)
 
-    def form_cyclic_link(self, pos, goal_pos, cur_path):
-        if goal_pos in self.next_node_dict[pos]:
-            path = cur_path[:]
-            path.append(goal_pos)
-            
-            print('found', goal_pos, 'following', path)
-            yield path
+    def find_elem_cyclic_path(self, pos: int, goal_pos: int, cur_path: list) -> list:
+        if goal_pos in self.next_node_dict[pos]:            
+            yield cur_path[:]
         else:
-            for running_pos in self.next_node_dict[pos]:
+
+            for running_pos in self.next_node_dict[pos]: 
+                if any(running_pos in path for path in self.shortest_paths):
+                    continue
+
                 if running_pos in cur_path:
                     continue
 
                 cur_path.append(running_pos)
-                for path in self.form_cyclic_link(running_pos, goal_pos, cur_path):
+                for path in self.find_elem_cyclic_path(running_pos, goal_pos, cur_path):
                     yield path
 
                 cur_path.remove(running_pos)
             
+    def set_common_paths(self, shortest_path: list) -> None:
+        working_path = shortest_path[:-1]
+        elem = working_path[-1]
+
+        if elem in self.shortest_paths:
+            return
+        else:
+            working_path.insert(0, elem)
+            self.shortest_paths[elem] = working_path
+            self.set_common_paths(working_path)
+
+    def eval_green(self, idx: int, letter: str, solved_letters: list) -> bool:
+        if letter == solved_letters[idx]:
+            return True
+    
+    def swap(self, idx1: int, idx2: int, state: list) -> list:
+        temp1 = state[idx1]
+        
+        state[idx1] = state[idx2]
+        state[idx2] = temp1
+        
+        return state
+
+    def form_moves_from_cycles(self, solved_letters: list) -> list:
+        moves = []
+        working_state = self.initial_letters[:]
+
+        for cyclic_path in self.shortest_paths:
+            working_cycle = cyclic_path[:]
+            
+            i = 0
+            while i < len(working_cycle):
+                idx1 = working_cycle[i]
+                for idx2 in working_cycle:
+                    if idx1 != idx2:
+                        check1 = self.eval_green(idx1, working_state[idx2], solved_letters)
+                        if check1:
+                            moves.append((idx1, idx2, working_state[idx1], working_state[idx2]))
+
+                            working_state = self.swap(idx1, idx2, working_state)
+                            working_cycle.remove(idx1)
+
+                            i = 0
+                            break
+                i += 1
+        return moves
