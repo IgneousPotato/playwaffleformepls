@@ -4,7 +4,7 @@ from selenium import webdriver
 from selenium.webdriver.common.by import By
 
 
-class Scrapper:
+class Driver:
     def __init__(self, url: str, driver: webdriver = None) -> None:
         self.html = url
         if driver != None:
@@ -37,3 +37,8 @@ class Scrapper:
             var l = document.getElementsByClassName("{tag}")[0];
             l.parentNode.removeChild(l);
             """)
+
+    def get_todays_solution(self) -> list:
+        solution = self.driver.execute_script("""var l = JSON.parse(window.localStorage.getItem("state"));
+                                                 return l['solution']""")
+        return solution

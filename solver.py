@@ -10,6 +10,7 @@ from typing import Callable
 class Solver:
     board_matrix: np.ndarray
     words_list: set
+    initial_letters: list
     
     def __init__(self, board: object, words: list) -> None:
         self.words_list = words
@@ -27,17 +28,21 @@ class Solver:
             self.board_matrix[board.tile_pos[i]] = tile.letter
             self.initial_letters.append(tile.letter)
 
-            if tile.colour == "green":
-                self.mask[board.tile_pos[i]] = 1
-            elif tile.colour == "yellow":
-                self.mask[board.tile_pos[i]] = 0
-        
+            match tile.colour:
+                case "green":
+                    self.mask[board.tile_pos[i]] = 1
+                case "yellow":
+                    self.mask[board.tile_pos[i]] = 0
+
         self._domains= self.get_domains()
         self._arcs, self._constraints = self.get_arcs_constraints()
         self.poss_solutions = {}
 
         self.next_node_dict = {}
         self.shortest_paths = []
+
+    def get_initial_state(self) -> list:
+        return self.initial_letters
 
     def get_domains(self) -> dict | dict:
         wrong_letters_mask = ''
@@ -71,17 +76,18 @@ class Solver:
         empty_idx = []
 
         for count, char in enumerate(mask):
-            if char == 1:
-                g_letters += word[count]
-                y_letters += '.'  
-            elif char == 0:
-                g_letters += '.'
-                y_letters += word[count]
-                y_idx.append(count)
-            else:
-                g_letters += '.'
-                y_letters += '.'
-                empty_idx.append(count)
+            match char:
+                case 1:
+                    g_letters += word[count]
+                    y_letters += '.'  
+                case 0:
+                    g_letters += '.'
+                    y_letters += word[count]
+                    y_idx.append(count)
+                case _:
+                    g_letters += '.'
+                    y_letters += '.'
+                    empty_idx.append(count)
 
         if g_letters != '.'*self.size:
             pattern = re.compile(g_letters, re.IGNORECASE)
@@ -255,33 +261,26 @@ class Solver:
 
         return self.poss_solutions
 
-    def find_best_moves(self, domain: dict) -> list:
+    def find_best_moves(self, solved_puzzle: str | dict) -> list:
         self.next_node_dict = {}
         self.shortest_paths = []
-        solved_letters = self.get_solved_letters(domain)
+
+        match solved_puzzle:
+            case dict(): 
+                solved_letters = self.get_solved_letters(solved_puzzle)
+            case str(): 
+                solved_letters = list(solved_puzzle)
+            case _:
+                logging.error('find_best_moves() cannot parse given solution type. Only accepts str or dict.')
 
         for path, lt in enumerate(self.initial_letters):
             self.form_next_node_dict(self.initial_letters, lt, path, solved_letters)
 
         self.next_node_dict = dict(sorted(self.next_node_dict.items(), key=lambda item: len(item[1])))
-        self.find_cyclic_paths()
+        self.find_cyclic_paths()    # Group theory fuck yea
         best_moves = self.form_moves_from_cycles(solved_letters)
         
         return best_moves
-
-    def find_cyclic_paths(self) -> list:
-        for k in self.next_node_dict.keys():
-            if not any(k in path for path in self.shortest_paths):
-
-                paths = []
-                for path in self.find_elem_cyclic_path(k, k, [k]):
-                    paths.append(path)
-
-                min_len = len(min(paths, key=len))
-                shortest_paths = [x for x in paths if len(x) == min_len]
-
-                if len(shortest_paths) == 1:
-                    self.shortest_paths.append(list(set(shortest_paths[0])))
 
     def form_next_node_dict(self, state: list, letter: str, pos: int, solved_letters: list) -> None:
         if letter == solved_letters[pos]:
@@ -294,6 +293,19 @@ class Solver:
                 continue
             if letter == solved_letters[idx]:
                 self.next_node_dict[pos].append(idx)
+
+    def find_cyclic_paths(self) -> list:
+        for k in self.next_node_dict.keys():
+            if not any(k in path for path in self.shortest_paths):
+
+                paths = []
+                for path in self.find_elem_cyclic_path(k, k, [k]):
+                    paths.append(path)
+
+                min_len = len(min(paths, key=len))
+                shortest_paths = [x for x in paths if len(x) == min_len]
+
+                self.shortest_paths.append(list(set(shortest_paths[0])))    # Just pick first one if multiple, shouldn't matter. 
 
     def find_elem_cyclic_path(self, pos: int, goal_pos: int, cur_path: list) -> list:
         if goal_pos in self.next_node_dict[pos]:            

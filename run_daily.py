@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import logging
 
+from sys import argv
 from time import sleep
 from seleniumrequests import Firefox
 from selenium.webdriver.common.by import By
@@ -11,24 +12,35 @@ from tile import Web_Tile
 from board import Web_Board
 from player import Web_Player
 from solver import Solver
-from scrapper import Scrapper
+from driver import Driver
 
 def main() -> None:
+    # THIS IS SPECIFICALLY FOR THE DAILY WAFFLE.
     try:
-        # headless = True
-        headless = False
+        headless = True
+        try:
+            match argv[1]:
+                case 'True':
+                    pass
+                case 'False':
+                    headless = False
+                case _:
+                    logging.info(f"I don't know what {argv[1]} means. Running in headless mode.") 
+        except:
+            pass
 
         browserOpts = Options()
         browserOpts.headless = headless
         browser = Firefox(options=browserOpts)
     
-        driver = Scrapper(url='https://wafflegame.net/', driver=browser)
+        driver = Driver(url='https://wafflegame.net/', driver=browser)
         driver.load_dynamic_page()
+        solution = driver.get_todays_solution()
         
         if not headless:
-            browser.maximize_window()
+            browser.maximize_window()   
             try:
-                sleep(5)
+                sleep(3)
                 driver.click_elem(type=By.CLASS_NAME, tag="css-b2i6wm")
                 logging.info("Opened privacy options")
                 
@@ -43,13 +55,12 @@ def main() -> None:
                 driver.delete_elem(tag="help modal modal--show")
                 logging.info("Closed help information")
 
-            '''try:
+            try:
                 driver.delete_elem(tag="vm-skin vm-skin-left")
                 driver.delete_elem(tag="vm-skin vm-skin-right")
                 logging.info("Ew, bye ads.")
             except:
-                pass'''
-
+                pass
 
         tiles = []
         num = 22
@@ -80,35 +91,36 @@ def main() -> None:
 
         BS = Solver(board, words)
         poss_sol = BS.solve()
-        
-        instructions = {}
-
-        if len(poss_sol.items()) > 1:
-            logging.info('FOUND MULTIPLE SOLUTIONS')
-
+    
+        instructions = []
         for k, v in poss_sol.items():
-            print()
-            instructions[k] = BS.find_best_moves(v)
-            
-            move_count = len(instructions[k])
-            if move_count != 10 and move_count != 20:
-                logging.info(f'FOLLOWING SOLUTION IS VALID BUT INVALID ON WAFFLEGAME.NET AS IT CAN BE REACHED IN {move_count} MOVES!!!!')
-                
-            logging.info(f'SOLUTION #{k}: {v}')  
-            logging.info('Best moves to reach it:')
-            for move in instructions[k]:
-                print(move)    
+            if BS.get_solved_letters(v) == solution:
+                instructions = BS.find_best_moves(v)
+               
+                logging.info(f'SOLUTION #{k}: {v}')  
+                logging.info('Best moves to reach it:')
+                for move in instructions:
+                    print(move)    
+            else:
+                logging.error("Today's solution not found... Dunno why. Do it yourself I guess. Soz.")
         
-        print()
-        if len(poss_sol.items()) > 1:
-            picked_sol = input('Enter solution number (#) to follow moves: ')
+        if headless == True:
+            automatic = True
         else:
-            picked_sol = 0
+            exit = True
+            while exit:
+                check = input('Run automatically? Y or N: ')
+                match check:
+                    case 'Y':
+                        automatic = True
+                        exit = False
+                    case 'N':
+                        automatic = False
+                        exit = False
+                    case _:
+                        logging.error('Just answer it properly.')
         
-        logging.info(f'Selected solution: {poss_sol[picked_sol]}')    
-        logging.info(f'Moves: {instructions[picked_sol]}')
-        
-        player.run_instructions(instructions[picked_sol], automatic = False)
+        player.run_instructions(instructions, automatic = automatic)
         
     finally:
         try:

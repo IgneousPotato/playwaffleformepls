@@ -86,7 +86,7 @@ def run(size: int, letters: list, colours: list) -> dict | list:
         logging.error('Something went wrong. Were your inputs valid?')
         quit()
 
-def main():
+def main() -> None:
     try:     
         try:
             print("""                                       
@@ -131,11 +131,14 @@ def main():
         for k, v in sol.items():
             print()
             move_count = len(moves[k])
+            stars = ' for 5 stars'
+            
+            logging.info(f'SOLUTION #{k}: {v}')
             if move_count != 10 and move_count != 20:
-                logging.info(f'FOLLOWING SOLUTION IS VALID BUT INVALID ON WAFFLEGAME.NET AS IT CAN BE REACHED IN {move_count} MOVES!!!!')
-                
-            logging.info(f'SOLUTION #{k}: {v}')  
-            logging.info('Best moves to reach it:')
+                logging.info(f'IT IS VALID BUT INVALID ON WAFFLEGAME.NET AS IT CAN BE REACHED IN MINIMUM OF {move_count} MOVES!!')  
+                stars = ''
+
+            logging.info(f'Possible {move_count} moves to solve it{stars}:')
             for move in moves[k]:
                 print(move)      
 
