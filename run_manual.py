@@ -68,16 +68,19 @@ def run(size: int, letters: list, colours: list) -> dict | list:
         board = Board(size)
         board.add_tiles(load_tiles(letters, colours))
         print(f'{board}')
-
+        
         BS = Solver(board, words)
-        sol = BS.solve()
+        poss_sol = BS.solve()
 
-        if sol == None:
+        if poss_sol == None:
             logging.info('No valid solution found for given board')
             quit()
-
-        best_moves = BS.find_best_moves()
-        return sol, best_moves
+        best_moves = {}
+        
+        for k, sol in poss_sol.items():
+            best_moves[k] = BS.find_best_moves(sol)
+            
+        return poss_sol, best_moves
     except:
         print()
         logging.error('Something went wrong. Were your inputs valid?')
@@ -86,13 +89,20 @@ def run(size: int, letters: list, colours: list) -> dict | list:
 def main():
     try:     
         try:
-            print("""                                                                                                 
- _____ _____ _____    _ _ _ _____ _____ _____ __    _____    _____ _____ __    _____ _____ _____ 
-|  _  |     |     |  | | | |  _  |   __|   __|  |  |   __|  |   __|     |  |  |  |  |   __| __  |
-|   __|  |  |  |  |  | | | |     |   __|   __|  |__|   __|  |__   |  |  |  |__|  |  |   __|    -|
-|__|  |_____|_____|  |_____|__|__|__|  |__|  |_____|_____|  |_____|_____|_____|\___/|_____|__|__|
-                                                                                                 
-""")
+            print("""                                       
+ _____ __    _____ _____ _____ _____   
+|  _  |  |  |     |     |   __|_   _|  
+|     |  |__| | | |  |  |__   | | |    
+|__|__|_____|_|_|_|_____|_____| |_|    
+ _ _ _ _____ _____ _____ __    _____   
+| | | |  _  |   __|   __|  |  |   __|  
+| | | |     |   __|   __|  |__|   __|  
+|_____|__|__|__|  |__|  |_____|_____|  
+ _____ _____ __    _____ _____ _____   
+|   __|     |  |  |  |  |   __| __  |  
+|__   |  |  |  |__|  |  |   __|    -|  
+|_____|_____|_____|\___/|_____|__|__|  
+                                    """)
             sz, lt, cl = extract_file(argv[1])
             logging.info(f'Opened file {argv[1]}.')
             print(f'\nSize    : {sz}')
@@ -115,10 +125,20 @@ def main():
         
         sol, moves = run(sz, lt, cl)
 
-        logging.info(f'SOLUTION: {sol}')  
-        logging.info('Best moves to reach it:')
-        for move in moves:
-            print(move)      
+        if len(sol.items()) > 1:
+            logging.info('FOUND MULTIPLE SOLUTIONS')
+
+        for k, v in sol.items():
+            print()
+            move_count = len(moves[k])
+            if move_count != 10 and move_count != 20:
+                logging.info(f'FOLLOWING SOLUTION IS VALID BUT INVALID ON WAFFLEGAME.NET AS IT CAN BE REACHED IN {move_count} MOVES!!!!')
+                
+            logging.info(f'SOLUTION #{k}: {v}')  
+            logging.info('Best moves to reach it:')
+            for move in moves[k]:
+                print(move)      
+
     except KeyboardInterrupt:
         print()
         logging.info('Keyboard Interrupt')

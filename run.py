@@ -50,6 +50,7 @@ def main() -> None:
             except:
                 pass'''
 
+
         tiles = []
         num = 22
         xpath = "/html/body/div[3]/div[2]/main[1]/div[2]/div[2]/div"
@@ -74,15 +75,40 @@ def main() -> None:
             for line in flw:
                 words.extend(line.split())
 
-        BS = Solver(board, words)
-        ans = BS.solve()
-        logging.info(f'FINAL SOLUTION: {ans}')
-        
         action_driver = ActionChains(browser)
         player = Web_Player(action_driver, board)
 
-        instructions = BS.find_best_moves()
-        player.run_instructions(instructions, automatic = True)
+        BS = Solver(board, words)
+        poss_sol = BS.solve()
+        
+        instructions = {}
+
+        if len(poss_sol.items()) > 1:
+            logging.info('FOUND MULTIPLE SOLUTIONS')
+
+        for k, v in poss_sol.items():
+            print()
+            instructions[k] = BS.find_best_moves(v)
+            
+            move_count = len(instructions[k])
+            if move_count != 10 and move_count != 20:
+                logging.info(f'FOLLOWING SOLUTION IS VALID BUT INVALID ON WAFFLEGAME.NET AS IT CAN BE REACHED IN {move_count} MOVES!!!!')
+                
+            logging.info(f'SOLUTION #{k}: {v}')  
+            logging.info('Best moves to reach it:')
+            for move in instructions[k]:
+                print(move)    
+        
+        print()
+        if len(poss_sol.items()) > 1:
+            picked_sol = input('Enter solution number (#) to follow moves: ')
+        else:
+            picked_sol = 0
+        
+        logging.info(f'Selected solution: {poss_sol[picked_sol]}')    
+        logging.info(f'Moves: {instructions[picked_sol]}')
+        
+        player.run_instructions(instructions[picked_sol], automatic = False)
         
     finally:
         try:
@@ -96,11 +122,18 @@ def main() -> None:
 
 if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO, format='%(levelname)s:%(asctime)s - %(message)s')
-    print("""                                                                                                 
- _____ _____ _____    _ _ _ _____ _____ _____ __    _____    _____ _____ __    _____ _____ _____ 
-|     |   __|  |  |  | | | |  _  |   __|   __|  |  |   __|  |   __|     |  |  |  |  |   __| __  |
-| | | |   __|     |  | | | |     |   __|   __|  |__|   __|  |__   |  |  |  |__|  |  |   __|    -|
-|_|_|_|_____|__|__|  |_____|__|__|__|  |__|  |_____|_____|  |_____|_____|_____|\___/|_____|__|__|
-                                                                                                 
-""")
+    print("""                                       
+ _____ __    _____ _____ _____ _____   
+|  _  |  |  |     |     |   __|_   _|  
+|     |  |__| | | |  |  |__   | | |    
+|__|__|_____|_|_|_|_____|_____| |_|    
+ _ _ _ _____ _____ _____ __    _____   
+| | | |  _  |   __|   __|  |  |   __|  
+| | | |     |   __|   __|  |__|   __|  
+|_____|__|__|__|  |__|  |_____|_____|  
+ _____ _____ __    _____ _____ _____   
+|   __|     |  |  |  |  |   __| __  |  
+|__   |  |  |  |__|  |  |   __|    -|  
+|_____|_____|_____|\___/|_____|__|__|  
+                                    """)
     main()

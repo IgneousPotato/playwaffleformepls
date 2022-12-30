@@ -1,5 +1,4 @@
 import re
-import copy
 import queue
 import string
 import logging
@@ -35,6 +34,7 @@ class Solver:
         
         self._domains= self.get_domains()
         self._arcs, self._constraints = self.get_arcs_constraints()
+        self.poss_solutions = {}
 
         self.next_node_dict = {}
         self.shortest_paths = []
@@ -173,31 +173,35 @@ class Solver:
 
         return removed
 
-    def backtrack_search(self, domains: dict, print_: bool = False) -> dict:
+    def backtrack_search(self, running_dom: dict, print_: bool = False) -> dict:
         if print_:
             print()
-            logging.info(f'Testing domain: {domains}')
+            logging.info(f'Testing domain: {running_dom}')
 
             stack = []
-            for values in domains.values():
+            for values in running_dom.values():
                 if len(values) == 1:
                     stack.append(values[0])
                 if len(values) > 1:
                     break
             logging.info(f'Current Stack 2: {" -> ".join(stack)}')
         
-        if all(len(value) == 1 for value in domains.values()) and self.check_letters(domains):
-            logging.info('FOUND VALID SOLUTION!!!!!!!!!!!!!!!!!')
-            return domains
+        if all(len(value) == 1 for value in running_dom.values()) and self.check_valid_sol(running_dom):
+            if running_dom not in [x for x in self.poss_solutions.values()]:
+                if print_:
+                    logging.info('FOUND NEW VALID SOLUTION!!!!!!!!!!!!!!!!!')
+                    logging.info(f'SOLUTION: {running_dom}')
+                self.poss_solutions[len(self.poss_solutions)] = running_dom
+            return None
         
-        for key, values in domains.items():
+        for key, values in running_dom.items():
             if len(values) > 1:
                 break
         else:
             return None
 
         for value in values:
-            new_domains = {k: v[:] for k, v in domains.items()}
+            new_domains = {k: v[:] for k, v in running_dom.items()}
             new_domains[key] = [value]
 
             if self.run_AC3(new_domains) == None:
@@ -208,7 +212,7 @@ class Solver:
                 return result
         return None
 
-    def check_letters(self, domain: dict) -> bool:
+    def check_valid_sol(self, domain: dict) -> bool:
         letters_string = ''
 
         for key in domain:
@@ -240,34 +244,30 @@ class Solver:
         
     def solve(self) -> dict:
         self.run_AC3(self._domains)
-        # print('after AC3')
-        # print(self._domains)
-        self._domains = self.backtrack_search(self._domains)
-        # print()
-        # print('after backtrack')
-        # print(self._domains)
-        if self._domains != None:
-            self._domains = dict(sorted(self._domains.items(), key=lambda item: len(item[1])))
-            
-        return self._domains
+        self.backtrack_search(self._domains)
 
-    def find_best_moves(self, domains: dict) -> list:
-        solved_letters = self.get_solved_letters(domains)
-        
+        for domain in self.poss_solutions.values():
+            if domain != None:
+                domain = dict(sorted(domain.items(), key=lambda item: len(item[1])))
+            
+        return self.poss_solutions
+
+    def find_best_moves(self, domain: dict) -> list:
         self.next_node_dict = {}
         self.shortest_paths = []
+        solved_letters = self.get_solved_letters(domain)
 
         for path, lt in enumerate(self.initial_letters):
             self.form_next_node_dict(self.initial_letters, lt, path, solved_letters)
+
         self.next_node_dict = dict(sorted(self.next_node_dict.items(), key=lambda item: len(item[1])))
         self.find_cyclic_paths()
-        moves = self.form_moves_from_cycles(solved_letters)
+        best_moves = self.form_moves_from_cycles(solved_letters)
         
-        return moves
+        return best_moves
 
     def find_cyclic_paths(self) -> list:
         for k in self.next_node_dict.keys():
-            print(k)
             if not any(k in path for path in self.shortest_paths):
 
                 paths = []
@@ -296,7 +296,6 @@ class Solver:
         if goal_pos in self.next_node_dict[pos]:            
             yield cur_path[:]
         else:
-
             for running_pos in self.next_node_dict[pos]: 
                 if any(running_pos in path for path in self.shortest_paths):
                     continue
