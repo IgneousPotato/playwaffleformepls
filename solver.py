@@ -249,7 +249,10 @@ class Solver:
         for domain in self.poss_solutions.values():
             if domain != None:
                 domain = dict(sorted(domain.items(), key=lambda item: len(item[1])))
-            
+        
+        if self.poss_solutions == {}:
+            return None
+
         return self.poss_solutions
 
     def find_best_moves(self, domain: dict) -> list:
