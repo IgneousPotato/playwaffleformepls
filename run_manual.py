@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import logging
+import argparse
 
 from sys import argv
 
@@ -20,9 +21,14 @@ def extract_file(file_name: str) -> int | list | list:
     return size, parse_letters(letters), parse_colours(colours)
 
 def parse_letters(ltr_str: str) -> list:
+    if ltr_str is None:
+        return None
     return list(ltr_str.upper())
 
 def parse_colours(col_str: str) -> list:
+    if col_str is None:
+        return None
+
     colours = []
     for col in col_str:
         if col == 'w':
@@ -67,8 +73,7 @@ def run(size: int, letters: list, colours: list) -> dict | list:
 
         board = Board(size)
         board.add_tiles(load_tiles(letters, colours))
-        print(f'{board}')
-        
+
         BS = Solver(board, words)
         poss_sol = BS.solve()
 
@@ -87,9 +92,8 @@ def run(size: int, letters: list, colours: list) -> dict | list:
         quit()
 
 def main() -> None:
-    try:     
-        try:
-            print("""
+    try:   
+        print("""
  _____ __    _____ __ __    _ _ _ _____ _____ _____ __    _____   
 |  _  |  |  |  _  |  |  |  | | | |  _  |   __|   __|  |  |   __|  
 |   __|  |__|     |_   _|  | | | |     |   __|   __|  |__|   __|  
@@ -99,25 +103,37 @@ def main() -> None:
 |   __|  |  |    -|  | | | |   __|  |   __|  |__|__   |           
 |__|  |_____|__|__|  |_|_|_|_____|  |__|  |_____|_____|           
                                                             """)
-            sz, lt, cl = extract_file(argv[1])
-            logging.info(f'Opened file {argv[1]}.')
-            print(f'\nSize    : {sz}')
-            print(f'Letters : {lt} // lenght: {len(lt)}')
-            print(f'Colours : {cl} // length: {len(cl)}')
-        except FileNotFoundError:
-            logging.error('File not found')
-            quit()
-        except IndexError:
-            logging.info('No file given. Enter manual input.')
-            logging.info('Keyboard interrupt (Ctrl + C) to exit.')
-            logging.info('P.S. Right click to paste string in terminal :)\n')
+            
+        if args.file is not None:
+            if args.size is not None or args.letters is not None or args.colours is not None:
+                logging.info("Ignored all other arguments except for ['-f', --file']")
 
-            sz = int(input('Enter size: '))
-            logging.info(f"Letters string and colours string should be of length {int((sz + 1) * (3*sz - 1) * 0.25)}.")
-            lt = parse_letters(input('Enter letters string: '))
-            print(f'            ⮡ length: {len(lt)}')
-            cl = parse_colours(input('Enter colours string: '))
-            print(f'            ⮡ length: {len(cl)}')
+            try:
+                sz, lt, cl = extract_file(args.file)
+                logging.info(f'Opened file {args.file}.')
+
+            except FileNotFoundError:
+                logging.error('File not found')
+                quit()
+
+        else:
+            sz, lt, cl = args.size, parse_letters(args.letters), parse_colours(args.colours)
+
+            if args.size is None:
+                sz = int(input('Enter size: '))
+                logging.info(f"Letters string and colours string should be of length {int((sz + 1) * (3*sz - 1) * 0.25)}.")
+            
+            if args.letters is None:
+                lt = parse_letters(input('Enter letters string: '))
+                print(f'            ⮡ length: {len(lt)}')
+            
+            if args.colours is None:
+                cl = parse_colours(input('Enter colours string: '))
+                print(f'            ⮡ length: {len(cl)}')
+            
+        print(f'\nSize    : {sz}')
+        print(f'Letters : {lt} // length: {len(lt)}')
+        print(f'Colours : {cl} // length: {len(cl)}')
         
         sol, moves = run(sz, lt, cl)
 
@@ -144,5 +160,14 @@ def main() -> None:
         logging.info('Exitting')
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Plays today's puzzle at Wafflegame.net")
+    parser.add_argument('-f', '--file', metavar='file', help='open file')
+
+    group = parser.add_argument_group()
+    group.add_argument('-s', '--size', metavar='size', type=int, help='size of board')
+    group.add_argument('-l', '--letters', metavar='letters', type=str, help='letters on the board')
+    group.add_argument('-c', '--colours', metavar='colours', type=str, help='colours of letters on the board')
+    args = parser.parse_args()
+
     logging.basicConfig(level=logging.INFO, format='%(levelname)s:%(asctime)s - %(message)s')
     main()

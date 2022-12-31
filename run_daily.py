@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 import logging
+import argparse
 
-from sys import argv
 from time import sleep
 from seleniumrequests import Firefox
 from selenium.webdriver.common.by import By
@@ -17,17 +17,11 @@ from driver import Driver
 def main() -> None:
     # THIS IS SPECIFICALLY FOR THE DAILY WAFFLE.
     try:
-        headless = True
-        try:
-            match argv[1]:
-                case 'True':
-                    pass
-                case 'False':
-                    headless = False
-                case _:
-                    logging.info(f"I don't know what {argv[1]} means. Running in headless mode.") 
-        except:
-            pass
+        headless = args.headless
+        automatic = args.automatic
+        
+        logging.info(f'Headless: {headless}. Automatic: {automatic}\n')
+        logging.info('Waiting for page to load.')
 
         browserOpts = Options()
         browserOpts.headless = headless
@@ -37,30 +31,22 @@ def main() -> None:
         driver.load_dynamic_page()
         solution = driver.get_todays_solution()
         
-        if not headless:
-            browser.maximize_window()   
-            try:
-                sleep(3)
-                driver.click_elem(type=By.CLASS_NAME, tag="css-b2i6wm")
-                logging.info("Opened privacy options")
-                
-                driver.click_elem(type=By.CLASS_NAME, tag="css-1vx625n")
-                logging.info("Rejected all")
-                
-                driver.click_elem(type=By.CLASS_NAME, tag="css-1litn2c", mul=True)
-                logging.info("Saved privacy options")
-            except:
-                pass
-            finally:
-                driver.delete_elem(tag="help modal modal--show")
-                logging.info("Closed help information")
-
-            try:
-                driver.delete_elem(tag="vm-skin vm-skin-left")
-                driver.delete_elem(tag="vm-skin vm-skin-right")
-                logging.info("Ew, bye ads.")
-            except:
-                pass
+        browser.maximize_window()   
+        try:
+            sleep(3)
+            driver.click_elem(type=By.CLASS_NAME, tag="css-b2i6wm")
+            logging.info("Opened privacy options")
+            
+            driver.click_elem(type=By.CLASS_NAME, tag="css-1vx625n")
+            logging.info("Rejected all")
+            
+            driver.click_elem(type=By.CLASS_NAME, tag="css-1litn2c", mul=True)
+            logging.info("Saved privacy options")
+        except:
+            pass
+        finally:
+            driver.delete_elem(tag="help modal modal--show")
+            logging.info("Closed help information")
 
         tiles = []
         num = 22
@@ -76,6 +62,9 @@ def main() -> None:
             except:
                 xpath = "/html/body/div[4]/div[2]/main[1]/div[2]/div[2]/div" # idk why but it sometimes changes the first div in the xpath?
                 num = 22
+
+        game_num = browser.find_element(By.CLASS_NAME, 'game-number').get_attribute('innerHTML')
+        print(f'\n{game_num}')
 
         board = Web_Board(browser, 5)
         board.add_tiles(tiles)
@@ -102,30 +91,26 @@ def main() -> None:
                 for move in instructions:
                     print(move)    
             else:
-                logging.error("Today's solution not found... Dunno why. Do it yourself I guess. Soz.")
+                continue
+        print()
         
-        if headless == True:
-            automatic = True
+        if automatic:
+            logging.info('Playing moves automatically.')
         else:
-            exit = True
-            while exit:
-                check = input('Run automatically? Y or N: ')
-                match check:
-                    case 'Y':
-                        automatic = True
-                        exit = False
-                    case 'N':
-                        automatic = False
-                        exit = False
-                    case _:
-                        logging.error('Just answer it properly.')
-        
+            logging.info('Press enter to play next move.')
+            input()
+
         player.run_instructions(instructions, automatic = automatic)
         
-    finally:
-        try:
+        if not headless:
             logging.info('Press ENTER to close.')
             input()
+
+    except KeyboardInterrupt:
+        exit()
+
+    finally:
+        try:
             browser.close()
             pass
         except:
@@ -133,6 +118,13 @@ def main() -> None:
 
 
 if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description="Plays today's puzzle at Wafflegame.net")
+    parser.add_argument('-H', '--headless', metavar='headless', help='open browser or not', action=argparse.BooleanOptionalAction)
+    parser.add_argument('-a', '--automatic', metavar='automatic', help='play moves automatically or not', action=argparse.BooleanOptionalAction)
+    parser.set_defaults(headless=True, automatic=True)
+    
+    args = parser.parse_args()
+
     logging.basicConfig(level=logging.INFO, format='%(levelname)s:%(asctime)s - %(message)s')
     print("""
  _____ __    _____ __ __    _ _ _ _____ _____ _____ __    _____   
@@ -144,4 +136,5 @@ if __name__ == '__main__':
 |   __|  |  |    -|  | | | |   __|  |   __|  |__|__   |           
 |__|  |_____|__|__|  |_|_|_|_____|  |__|  |_____|_____|           
                                                             """)
+    
     main()
