@@ -89,13 +89,14 @@ def main() -> None:
             browser.execute_script(
                 """document.querySelector("[class='menu__item menu__item--archive']").click()""")
             # need wait till page loads
+            
             wait = True
             while wait:
                 try:
+                    sleep(0.5)
                     browser.execute_script(
                         f"""document.querySelector("[data-id='{archive_num}']").click()""")
                 except JavascriptException:
-                    sleep(0.5)
                     continue
                 wait = False
         case 'deluxe':
