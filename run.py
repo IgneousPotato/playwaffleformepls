@@ -4,10 +4,11 @@ import argparse
 import os
 
 from time import sleep
-from seleniumrequests import Firefox
+from seleniumrequests import Firefox, Chrome
 from selenium.webdriver.common.by import By
 from selenium.webdriver import ActionChains
-from selenium.webdriver.firefox.options import Options
+from selenium.webdriver.firefox.options import Options as f_options
+from selenium.webdriver.chrome.options import Options as c_options
 from selenium.common.exceptions import JavascriptException
 
 from tile import Web_Tile
@@ -20,7 +21,7 @@ def main() -> None:
     """
     Plays wafflegame.net
     """
-    mode, headless, automatic = args.mode, args.headless, args.automatic
+    browser, mode, headless, automatic = args.browser, args.mode, args.headless, args.automatic
 
     size, num, num_end = 5, 22, 43
     file = 'five_letter_words.txt'
@@ -39,6 +40,8 @@ def main() -> None:
             size, num, num_end, puzzle_type = 7, 41, 81, 'deluxe'
             xpath = "/html/body/div[3]/div[2]/main[2]/div[2]"
             file = 'seven_letter_words.txt'
+        case _:
+            logging.error("%s is not a valid waffle puzzle type", mode)
 
     words = []      # words from https://www.bestwordlist.com/
     with open(file, encoding='utf-8') as flw:
@@ -49,9 +52,23 @@ def main() -> None:
                  mode, headless, automatic)
     logging.info('Loading wafflegame.net')
 
-    browser_opts = Options()
-    browser_opts.headless = headless
-    browser = Firefox(options=browser_opts, service_log_path=os.devnull)
+    match args.browser.lower():
+        case 'chrome':
+            browser_opts = c_options()
+            browser_opts.headless = headless
+            browser_opts.add_experimental_option('excludeSwitches', ['enable-logging'])
+            browser = Chrome(options=browser_opts,
+                              service_log_path=os.devnull)
+        case 'firefox':
+            browser_opts = f_options()
+            browser_opts.headless = headless
+            browser = Firefox(options=browser_opts,
+                              service_log_path=os.devnull)
+        case _:
+            logging.error(
+                "%s is not a supported browser because I could not be bothered to do so.",
+                args.browser)
+
     browser.get('https://wafflegame.net/')
     browser.maximize_window()
 
@@ -89,7 +106,7 @@ def main() -> None:
             browser.execute_script(
                 """document.querySelector("[class='menu__item menu__item--archive']").click()""")
             # need wait till page loads
-            
+
             wait = True
             while wait:
                 try:
@@ -157,6 +174,8 @@ def main() -> None:
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
         description="Plays today's puzzle at Wafflegame.net")
+    parser.add_argument('-b', '--browser', metavar='browser',
+                        type=str, help='chrome or firefox')  # only those for now
     parser.add_argument('-m', '--mode', metavar='mode',
                         type=str, help='daily, archive, or deluxe')
     parser.add_argument('-n', '--number', metavar='number',
@@ -165,7 +184,8 @@ if __name__ == '__main__':
                         help='open browser or not', action=argparse.BooleanOptionalAction)
     parser.add_argument('-a', '--automatic', metavar='automatic',
                         help='play automatically or not', action=argparse.BooleanOptionalAction)
-    parser.set_defaults(mode='daily', headless=False, automatic=False)
+    parser.set_defaults(browser='chrome', mode='daily',
+                        headless=False, automatic=False)
 
     args = parser.parse_args()
 
