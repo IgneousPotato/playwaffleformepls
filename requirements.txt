@@ -1,6 +1,5 @@
 numpy
 selenium
 selenium-requests
-bs4
 colorama
 termcolor

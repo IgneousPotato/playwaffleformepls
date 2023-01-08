@@ -1,5 +1,6 @@
 import numpy as np
 
+
 class Board:
     size: int
     tiles: list
@@ -32,11 +33,10 @@ class Board:
         for i in range(self.size):
             for j in range(self.size):
                 if i % 2 != 0 and j % 2 != 0:
-                    continue 
-                else:
-                    pos.append((i, j))
+                    continue
+                pos.append((i, j))
         return pos
-    
+
     def add_tiles(self, tiles: list) -> None:
         self.tiles = tiles
         for i, tile in enumerate(self.tiles):
@@ -44,7 +44,7 @@ class Board:
 
     def change_tiles(self, idx1: int, idx2: int) -> None:
         tile1_temp = self.tiles[idx1]
-        
+
         self.tiles[idx1] = self.tiles[idx2]
         self.tiles[idx2] = tile1_temp
 
