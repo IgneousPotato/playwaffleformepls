@@ -6,3 +6,4 @@ archive*.txt
 deluxe*.txt
 /archives/
 /playwaffleforme_venv/
+get_all_archive.py

@@ -7,6 +7,7 @@ from typing import Callable
 
 import numpy as np
 
+
 class Solver:
     board_matrix: np.ndarray
     words_list: set
@@ -39,7 +40,8 @@ class Solver:
         self.poss_solutions = {}
 
         self.next_node_dict = {}
-        self.shortest_paths = []
+        self.largest_cycle = 0
+        self.certain_cycles = []
 
     def get_initial_state(self) -> list:
         return self.initial_letters
@@ -260,8 +262,9 @@ class Solver:
 
     def solve(self) -> dict:
         self.run_AC3(self._domains)
+        self._domains = dict(sorted(self._domains.items(),
+                             key=lambda item: len(item[1])))
         self.backtrack_search(self._domains)
-
         for domain in self.poss_solutions.values():
             if domain is not None:
                 domain = dict(
@@ -274,7 +277,7 @@ class Solver:
 
     def find_best_moves(self, solved_puzzle: str | dict) -> list:
         self.next_node_dict = {}
-        self.shortest_paths = []
+        self.certain_cycles = []
 
         match solved_puzzle:
             case dict():
@@ -291,7 +294,8 @@ class Solver:
 
         self.next_node_dict = dict(
             sorted(self.next_node_dict.items(), key=lambda item: len(item[1])))
-        self.find_cyclic_paths()    # Group theory fuck yea
+
+        self.find_cyclic_paths()
         best_moves = self.form_moves_from_cycles(solved_letters)
 
         return best_moves
@@ -308,26 +312,77 @@ class Solver:
             if letter == solved_letters[idx]:
                 self.next_node_dict[pos].append(idx)
 
-    def find_cyclic_paths(self) -> list:
+    def find_cyclic_paths(self) -> None:
+        uncertain_cycles = []
+        # next time is specific to wafflegame.net to reach in 10 or 20 (for deluxe) move
+        # dont know how it'd work for non-wafflegame.net puzzles that may need more than
+        # that to be solved. I also don't care.
+        # otherwise setting the value to len(self.next_node_dict) should work. maybe. idc.
+        self.largest_cycle = 22 - len(self.next_node_dict)
+        num_req_cycles = len(self.next_node_dict) - 10
+
+        if self.size == 7:
+            self.largest_cycle += 20
+            num_req_cycles += 10
+
         for k in self.next_node_dict:
-            if not any(k in path for path in self.shortest_paths):
-
-                paths = []
+            if not any(k in path for path in self.certain_cycles):
                 for path in self.find_elem_cyclic_path(k, k, [k]):
-                    paths.append(path)
+                    if path is None:
+                        continue
 
-                min_len = len(min(paths, key=len))
-                shortest_paths = [x for x in paths if len(x) == min_len]
+                    path_set = set(path)
+                    if len(path) == 2:
+                        self.certain_cycles.append(list(path_set))
+                        break
 
-                # Just pick first one if multiple, shouldn't matter.
-                self.shortest_paths.append(list(set(shortest_paths[0])))
+                    if path_set not in uncertain_cycles:
+                        uncertain_cycles.append(path_set)
+                    else:
+                        continue
+
+        if len(self.certain_cycles) == num_req_cycles:
+            pass
+        else:
+            valid_uncertain_cycles = []
+
+            for u_path in uncertain_cycles:
+                if not any(bool(set(c_path) & u_path) for c_path in self.certain_cycles):
+                    valid_uncertain_cycles.append(u_path)
+                    continue
+
+            if num_req_cycles - len(self.certain_cycles) == len(valid_uncertain_cycles):
+                for cycle in valid_uncertain_cycles:
+                    self.certain_cycles.append(list(cycle))
+                return
+
+            valid_uncertain_cycles = sorted(valid_uncertain_cycles, key=len)
+
+            buffer_cycles = []
+            node_track = []
+
+            for cyc in valid_uncertain_cycles:
+                if not buffer_cycles:
+                    buffer_cycles.append(cyc)
+                    node_track.extend(x for x in cyc)
+                    continue
+
+                if not any(node in node_track for node in cyc):
+                    buffer_cycles.append(cyc)
+                    node_track.extend(x for x in cyc)
+
+            for b_cyc in buffer_cycles:
+                self.certain_cycles.append(list(b_cyc))
 
     def find_elem_cyclic_path(self, pos: int, goal_pos: int, cur_path: list) -> list:
         if goal_pos in self.next_node_dict[pos]:
             yield cur_path[:]
         else:
+            if len(cur_path) >= self.largest_cycle:
+                yield None
+
             for running_pos in self.next_node_dict[pos]:
-                if any(running_pos in path for path in self.shortest_paths):
+                if any(running_pos in path for path in self.certain_cycles):
                     continue
 
                 if running_pos in cur_path:
@@ -335,7 +390,11 @@ class Solver:
 
                 cur_path.append(running_pos)
                 for path in self.find_elem_cyclic_path(running_pos, goal_pos, cur_path):
-                    yield path
+                    if path is not None:
+                        if len(path) <= self.largest_cycle:
+                            yield path
+                        else:
+                            yield None
 
                 cur_path.remove(running_pos)
 
@@ -343,11 +402,11 @@ class Solver:
         working_path = shortest_path[:-1]
         elem = working_path[-1]
 
-        if elem in self.shortest_paths:
+        if elem in self.certain_cycles:
             return
-            
+
         working_path.insert(0, elem)
-        self.shortest_paths[elem] = working_path
+        self.certain_cycles[elem] = working_path
         self.set_common_paths(working_path)
 
     def eval_green(self, idx: int, letter: str, solved_letters: list) -> bool:
@@ -366,7 +425,7 @@ class Solver:
         moves = []
         working_state = self.initial_letters[:]
 
-        for cyclic_path in self.shortest_paths:
+        for cyclic_path in self.certain_cycles:
             working_cycle = cyclic_path[:]
 
             i = 0

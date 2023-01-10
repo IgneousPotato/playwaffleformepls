@@ -93,8 +93,9 @@ def run(size: int, letters: list, colours: list) -> dict | list:
         return poss_sol, best_moves
     except Exception as exp:
         print()
-        logging.error('Something went wrong. Were your inputs valid?')
-        exit(exp)
+        logging.error('Were your inputs valid?')
+        logging.error('%s', exp)
+        exit()
 
 
 def main() -> None:
