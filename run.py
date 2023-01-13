@@ -56,9 +56,10 @@ def main() -> None:
         case 'chrome':
             browser_opts = c_options()
             browser_opts.headless = headless
-            browser_opts.add_experimental_option('excludeSwitches', ['enable-logging'])
+            browser_opts.add_experimental_option(
+                'excludeSwitches', ['enable-logging'])
             browser = Chrome(options=browser_opts,
-                              service_log_path=os.devnull)
+                             service_log_path=os.devnull)
         case 'firefox':
             browser_opts = f_options()
             browser_opts.headless = headless
@@ -142,19 +143,13 @@ def main() -> None:
     action_driver = ActionChains(browser)
     player = Web_Player(action_driver, board)
     solver = Solver(board, words)
-    poss_sol = solver.solve()
 
-    instructions = []
-    for _, val in poss_sol.items():
-        if solver.get_solved_letters(val) == list(solution):
-            instructions = solver.find_best_moves(val)
+    instructions = solver.find_best_moves(solution)
 
-            logging.info('SOLUTION: %s', val)
-            logging.info('Best moves to reach it:')
-            for move in instructions:
-                print(move)
-        else:
-            continue
+    logging.info('SOLUTION: %s', solution)
+    logging.info('Best moves to reach it:')
+    for move in instructions:
+        print(move)
     print()
 
     if automatic:

@@ -282,11 +282,13 @@ class Solver:
         match solved_puzzle:
             case dict():
                 solved_letters = self.get_solved_letters(solved_puzzle)
+            case list():
+                solved_letters = ''.join(solved_puzzle)
             case str():
                 solved_letters = list(solved_puzzle)
             case _:
                 logging.error(
-                    'find_best_moves() cannot parse given solution type. Only accepts str or dict.')
+                    'find_best_moves() cannot parse given solution type. Only accepts str, list or dict.')
 
         for path, lt in enumerate(self.initial_letters):
             self.form_next_node_dict(
@@ -320,6 +322,7 @@ class Solver:
         # otherwise setting the value to len(self.next_node_dict) should work. maybe. idc.
         self.largest_cycle = 22 - len(self.next_node_dict)
         num_req_cycles = len(self.next_node_dict) - 10
+        node_track = []
 
         if self.size == 7:
             self.largest_cycle += 20
@@ -334,6 +337,7 @@ class Solver:
                     path_set = set(path)
                     if len(path) == 2:
                         self.certain_cycles.append(list(path_set))
+                        node_track.extend(path)
                         break
 
                     if path_set not in uncertain_cycles:
@@ -358,18 +362,20 @@ class Solver:
 
             valid_uncertain_cycles = sorted(valid_uncertain_cycles, key=len)
 
-            buffer_cycles = []
-            node_track = []
-
             for cyc in valid_uncertain_cycles:
-                if not buffer_cycles:
-                    buffer_cycles.append(cyc)
-                    node_track.extend(x for x in cyc)
-                    continue
-
-                if not any(node in node_track for node in cyc):
-                    buffer_cycles.append(cyc)
-                    node_track.extend(x for x in cyc)
+                buffer_cycles = [cyc]
+                temp_track = [x for x in cyc]
+                
+                for inner_cyc in valid_uncertain_cycles:
+                    if inner_cyc == cyc:
+                        continue
+                    
+                    if not any(node in temp_track for node in inner_cyc):
+                        buffer_cycles.append(inner_cyc)
+                        temp_track.extend(x for x in inner_cyc)
+                
+                if sorted(node_track + temp_track) == sorted(list(self.next_node_dict.keys())):
+                    break
 
             for b_cyc in buffer_cycles:
                 self.certain_cycles.append(list(b_cyc))
