@@ -1,6 +1,7 @@
 name: deluxe waffle
 
 on: 
+  workflow_dispatch:
   schedule:
     - cron: '0 12 * * 1' # at noon every monday
 
