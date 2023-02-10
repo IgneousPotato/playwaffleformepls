@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import logging
 import argparse
+import json
 import os
 
 from time import sleep
@@ -17,11 +18,11 @@ from player import Web_Player
 from solver import Solver
 
 
-def main() -> None:
+def play() -> None:
     """
     Plays wafflegame.net
     """
-    browser, mode, headless, automatic = args.browser, args.mode, args.headless, args.automatic
+    browser, mode, headless, automatic, log = args.browser, args.mode, args.headless, args.automatic, args.log
 
     size, num, num_end = 5, 22, 43
     file = 'five_letter_words.txt'
@@ -134,8 +135,8 @@ def main() -> None:
     board = Web_Board(browser, size)
     board.add_tiles(tiles)
 
-    print(
-        f"\n{browser.find_element(By.XPATH, f'{xpath}/div[1]').get_attribute('innerHTML')}")
+    board_num = f"\n{browser.find_element(By.XPATH, f'{xpath}/div[1]').get_attribute('innerHTML')}"
+    print(board_num)
     print(board)
 
     logging.info("Solving puzzle.")
@@ -164,7 +165,33 @@ def main() -> None:
         logging.info('Press ENTER to close.')
         input()
         browser.close()
+    
+    if log:
+        adata = {}
+        adata['size'] = '5' if mode == 'daily' else '7'
+        adata['initial'] = str(list(solver.initial_letters))
+        adata['solution'] = str(list(solution))
+        adata['moves'] = str(instructions)
+        adata['moves_count'] = str(len(instructions))
 
+        sols_path = '.\\archive_solutions'
+        if not os.path.exists(sols_path):
+            os.makedirs(sols_path)
+        else:
+            sols_path = os.path.join(sols_path, f"{mode}.json")
+            try:
+                with open(sols_path, 'r', encoding='utf8') as file_json:
+                    file_json.seek(0, 0)
+                    data = json.load(file_json)
+            except FileNotFoundError:
+                data = {}
+
+            num = board_num.split()[-1].strip("#")
+            if num not in data:
+                with open(sols_path, 'w', encoding='utf8') as file_json:
+                    data[f"{num}"] = adata
+                    file_json.write(json.dumps(data, indent=4))
+                    
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
@@ -179,8 +206,11 @@ if __name__ == '__main__':
                         help='open browser or not', action=argparse.BooleanOptionalAction)
     parser.add_argument('-a', '--automatic', metavar='automatic',
                         help='play automatically or not', action=argparse.BooleanOptionalAction)
+    parser.add_argument('-l', '--log', metavar='log',
+                        help='save game moves', action=argparse.BooleanOptionalAction)
     parser.set_defaults(browser='chrome', mode='daily',
-                        headless=False, automatic=False)
+                        headless=False, automatic=False,
+                        log=False)
 
     args = parser.parse_args()
 
@@ -197,4 +227,4 @@ if __name__ == '__main__':
 |__|  |_____|__|__|  |_|_|_|_____|  |__|  |_____|_____|           
                                                             """)
 
-    main()
+    play()

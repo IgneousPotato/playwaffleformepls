@@ -1,5 +1,6 @@
 /__pycache__/*
-/archives/
+**/daily/
+**/deluxe/
 /playwaffleforme_venv/
 /dist/
 /build/
@@ -9,7 +10,6 @@ get_all_archive.py
 *.pyc
 *.spec
 
-*.json
 *.log
 archive*.txt
 deluxe*.txt
